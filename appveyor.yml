@@ -28,7 +28,7 @@ build_script:
 # Need to convert from shallow to complete for Pkg.clone to work
   - IF EXIST .git\shallow (git fetch --unshallow)
   - C:\projects\julia\bin\julia -e "versioninfo();
-      Pkg.clone(pwd(), \"LRS\"); Pkg.build(\"LRS\")"
+      Pkg.clone(pwd(), \"LRSLib\"); Pkg.build(\"LRSLib\")"
 
 test_script:
-  - C:\projects\julia\bin\julia --check-bounds=yes -e "Pkg.test(\"LRS\")"
+  - C:\projects\julia\bin\julia --check-bounds=yes -e "Pkg.test(\"LRSLib\")"

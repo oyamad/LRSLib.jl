@@ -1,4 +1,4 @@
-The LRS.jl package is licensed under the GPLv2 License:
+The LRSLib.jl package is licensed under the GPLv2 License:
 
 > Copyright (c) 2015: Benoît Legat.
 > All Rights Reserved.

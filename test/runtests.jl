@@ -1,4 +1,4 @@
-using LRS
+using LRSLib
 using Base.Test
 
 # write your own tests here

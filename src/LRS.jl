@@ -1,4 +1,4 @@
-module LRS
+module LRSLib
 
 # package code goes here
 
