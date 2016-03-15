@@ -2,7 +2,9 @@ using BinDeps
 
 @BinDeps.setup
 
-lrsname = "lrslib-061"
+lrslib_commit = "3f74bca5cfbc69e3edc7bc98c51881950a94d5a2"
+#lrsname = "lrslib-061"
+lrsname = "lrslib-$lrslib_commit"
 
 # julia installs libgmp10 but not libgmp-dev since it
 # does not have to compile C program with GMP,
@@ -14,6 +16,7 @@ lrsname = "lrslib-061"
 liblrs = library_dependency("liblrs", aliases=[lrsname, "liblrsgmp"])#, depends=[libgmpdev])
 
 official_repo = "http://cgm.cs.mcgill.ca/~avis/C/lrslib/archive/$lrsname.tar.gz"
+forked_repo = "https://github.com/blegat/lrslib/archive/$lrslib_commit.zip"
 
 #GMP
 @linux_only begin
@@ -37,7 +40,7 @@ end
 
 #LRS
 provides(Sources,
-        Dict(URI(official_repo) => liblrs), unpacked_dir="$lrsname")
+        Dict(URI(forked_repo) => liblrs), unpacked_dir="$lrsname")
 
 src_dir = joinpath(BinDeps.srcdir(liblrs), lrsname)
 lrssrcdir = joinpath(BinDeps.srcdir(liblrs), lrsname)
