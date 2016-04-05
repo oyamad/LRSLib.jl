@@ -6,10 +6,19 @@ immutable GMPInteger
   data::Ptr{UInt32}
 end
 
+const Clrs_true = Clong(1)
+const Clrs_false = Clong(0)
+
 typealias Clrs_mp GMPInteger
 typealias Clrs_mp_vector Ptr{Clrs_mp}
 typealias Clrs_mp_matrix Ptr{Ptr{Clrs_mp}}
 bitstype 800 Clrs_fname
+
+function extractbigintat(array::Clrs_mp_vector, i::Int)
+  tmp = BigInt(0)
+  ccall((:__gmpz_set, :libgmp), Void, (Ptr{BigInt}, Ptr{BigInt}), pointer_from_objref(tmp), array + (i-1) * sizeof(GMPInteger))
+  tmp
+end
 
 type Clrs_dic  # dynamic dictionary data
   A::Clrs_mp_matrix

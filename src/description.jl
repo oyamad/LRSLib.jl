@@ -1,11 +1,11 @@
-import Base.convert, Polyhedra.InequalityDescription, Polyhedra.GeneratorDescription
+import Base.convert, Polyhedra.HRepresentation, Polyhedra.VRepresentation
 
-# LRSMatrix -> Description
-InequalityDescription(matrix::LRSInequalityMatrix) = InequalityDescription{Rational{BigInt}}(matrix)
-GeneratorDescription(matrix::LRSGeneratorMatrix) = GeneratorDescription{Rational{BigInt}}(matrix)
+# LRSMatrix -> Representation
+HRepresentation(matrix::LRSInequalityMatrix) = HRepresentation{Rational{BigInt}}(matrix)
+VRepresentation(matrix::LRSGeneratorMatrix) = VRepresentation{Rational{BigInt}}(matrix)
 
-# converters Description -> LRSMatrix
-function Base.convert{N}(::Type{LRSInequalityMatrix{N}}, ine::InequalityDescription{Rational{BigInt}})
+# converters Representation -> LRSMatrix
+function Base.convert{N}(::Type{LRSInequalityMatrix{N}}, ine::HRepresentation{Rational{BigInt}})
   if N != fulldim(ine)
     error("N should be equal to the number of columns of A")
   end
@@ -14,7 +14,7 @@ function Base.convert{N}(::Type{LRSInequalityMatrix{N}}, ine::InequalityDescript
   LRSInequalityMatrix{N}(P, Q)
 end
 
-Base.convert{N}(::Type{LRSMatrix{N}}, ine::InequalityDescription{Rational{BigInt}}) = Base.convert(LRSInequalityMatrix{N}, ine)
+Base.convert{N}(::Type{LRSMatrix{N}}, ine::HRepresentation{Rational{BigInt}}) = Base.convert(LRSInequalityMatrix{N}, ine)
 
 function settoCarray(set::IntSet, m::Integer)
   s = zeros(Rational{BigInt}, m)
@@ -24,7 +24,7 @@ function settoCarray(set::IntSet, m::Integer)
   s
 end
 
-function Base.convert{N}(::Type{LRSGeneratorMatrix{N}}, ext::GeneratorDescription{Rational{BigInt}})
+function Base.convert{N}(::Type{LRSGeneratorMatrix{N}}, ext::VRepresentation{Rational{BigInt}})
   if N != fulldim(ext)
     error("N should be equal to the number of columns of V and R")
   end
@@ -41,32 +41,30 @@ function Base.convert{N}(::Type{LRSGeneratorMatrix{N}}, ext::GeneratorDescriptio
   LRSGeneratorMatrix{N}(P, Q)
 end
 
-function Base.convert{N}(::Type{LRSMatrix{N}}, ext::GeneratorDescription{Rational{BigInt}})
+function Base.convert{N}(::Type{LRSMatrix{N}}, ext::VRepresentation{Rational{BigInt}})
   Base.convert(LRSGeneratorMatrix{N}, ext)
 end
 
 # Specified N
-Base.convert{N, S}(::Type{LRSMatrix{N}}, desc::Description{S}) = Base.convert(LRSMatrix{N}, Base.convert(Description{Rational{BigInt}}, desc))
+Base.convert{N, S}(::Type{LRSMatrix{N}}, desc::Representation{S}) = Base.convert(LRSMatrix{N}, Base.convert(Representation{Rational{BigInt}}, desc))
 
-Base.convert{N}(::Type{LRSInequalityMatrix{N}}, ine::InequalityDescription) = Base.convert(LRSMatrix{N}, ine)
-Base.convert{N}(::Type{LRSGeneratorMatrix{N}}, ext::GeneratorDescription) = Base.convert(LRSMatrix{N}, ext)
+Base.convert{N}(::Type{LRSInequalityMatrix{N}}, ine::HRepresentation) = Base.convert(LRSMatrix{N}, ine)
+Base.convert{N}(::Type{LRSGeneratorMatrix{N}}, ext::VRepresentation) = Base.convert(LRSMatrix{N}, ext)
 # Unspecified N
-Base.convert{S}(::Type{LRSMatrix}, desc::Description{S}) = Base.convert(LRSMatrix{fulldim(desc)}, desc)
+Base.convert{S}(::Type{LRSMatrix}, desc::Representation{S}) = Base.convert(LRSMatrix{fulldim(desc)}, desc)
 
-Base.convert{T}(::Type{LRSInequalityMatrix}, ine::InequalityDescription{T}) = Base.convert(LRSMatrix, ine)
-Base.convert{T}(::Type{LRSGeneratorMatrix}, ext::GeneratorDescription{T}) = Base.convert(LRSMatrix, ext)
+Base.convert{T}(::Type{LRSInequalityMatrix}, ine::HRepresentation{T}) = Base.convert(LRSMatrix, ine)
+Base.convert{T}(::Type{LRSGeneratorMatrix}, ext::VRepresentation{T}) = Base.convert(LRSMatrix, ext)
 
 
-# converters LRSMatrix -> Description
-function extractbigintat(array::Ptr{GMPInteger}, i::Int)
-  tmp = BigInt(0)
-  ccall((:__gmpz_set, :libgmp), Void, (Ptr{BigInt}, Ptr{BigInt}), pointer_from_objref(tmp), array + (i-1) * sizeof(GMPInteger))
-  tmp
-end
-
+# converters LRSMatrix -> Representation
 function extractAb(P::Clrs_dic, Q::Clrs_dat, offset::Int)
   m = P.m
   d = P.d-offset
+  #d = Q.n-offset-1 # FIXME when it is modified...
+  #@show P.m
+  #@show P.d
+  #@show Q.n
   b = Vector{Rational{BigInt}}(m)
   A = Matrix{Rational{BigInt}}(m, d)
   for i in 1:m
@@ -90,17 +88,17 @@ function extractlinset(Q::Clrs_dat)
   linset
 end
 
-function Base.convert{N}(::Type{InequalityDescription{Rational{BigInt}}}, matrix::LRSInequalityMatrix{N})
+function Base.convert{N}(::Type{HRepresentation{Rational{BigInt}}}, matrix::LRSInequalityMatrix{N})
   P = unsafe_load(matrix.P)
   Q = unsafe_load(matrix.Q)
   @assert Q.hull == 0
 
   linset = extractlinset(Q)
   (b, A) = extractAb(P, Q, 0)
-  InequalityDescription(-A, b, linset)
+  HRepresentation(-A, b, linset)
 end
 
-Base.convert{N}(::Type{Description{Rational{BigInt}}}, ine::LRSInequalityMatrix{N}) = Base.convert(InequalityDescription{Rational{BigInt}}, ine)
+Base.convert{N}(::Type{Representation{Rational{BigInt}}}, ine::LRSInequalityMatrix{N}) = Base.convert(HRepresentation{Rational{BigInt}}, ine)
 
 # I don't want it to overwrite Base.convert behaviour
 function myconvert(::Type{IntSet}, a::Vector{Rational{BigInt}})
@@ -114,19 +112,19 @@ function myconvert(::Type{IntSet}, a::Vector{Rational{BigInt}})
   s
 end
 
-function Base.convert{N}(::Type{GeneratorDescription{Rational{BigInt}}}, matrix::LRSGeneratorMatrix{N})
+function Base.convert{N}(::Type{VRepresentation{Rational{BigInt}}}, matrix::LRSGeneratorMatrix{N})
   P = unsafe_load(matrix.P)
   Q = unsafe_load(matrix.Q)
   @assert Q.hull == 1
 
   linset = extractlinset(Q)
   (b, A) = extractAb(P, Q, 1)
-  GeneratorDescription(A, myconvert(IntSet, b), linset)
+  VRepresentation(A, myconvert(IntSet, b), linset)
 end
 
-Base.convert{N}(::Type{Description{Rational{BigInt}}}, ine::LRSGeneratorMatrix{N}) = Base.convert(GeneratorDescription{Rational{BigInt}}, ine)
+Base.convert{N}(::Type{Representation{Rational{BigInt}}}, ine::LRSGeneratorMatrix{N}) = Base.convert(VRepresentation{Rational{BigInt}}, ine)
 
-Base.convert{N, S}(::Type{InequalityDescription{S}}, matrix::LRSMatrix{N}) = Base.convert(Description{S}, Base.convert(Description{Rational{BigInt}}, matrix))
-Base.convert{N, S}(::Type{GeneratorDescription{S}}, matrix::LRSMatrix{N}) = Base.convert(Description{S}, Base.convert(Description{Rational{BigInt}}, matrix))
-Base.convert{N, S}(::Type{Description{S}}, matrix::LRSMatrix{N}) = Base.convert(Description{S}, Base.convert(Description{Rational{BigInt}}, matrix))
-Base.convert{N}(::Type{Description}, matrix::LRSMatrix{N}) = Base.convert(Description{Rational{BigInt}}, matrix)
+Base.convert{N, S}(::Type{HRepresentation{S}}, matrix::LRSMatrix{N}) = Base.convert(Representation{S}, Base.convert(Representation{Rational{BigInt}}, matrix))
+Base.convert{N, S}(::Type{VRepresentation{S}}, matrix::LRSMatrix{N}) = Base.convert(Representation{S}, Base.convert(Representation{Rational{BigInt}}, matrix))
+Base.convert{N, S}(::Type{Representation{S}}, matrix::LRSMatrix{N}) = Base.convert(Representation{S}, Base.convert(Representation{Rational{BigInt}}, matrix))
+Base.convert{N}(::Type{Representation}, matrix::LRSMatrix{N}) = Base.convert(Representation{Rational{BigInt}}, matrix)

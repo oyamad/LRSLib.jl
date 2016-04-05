@@ -16,12 +16,14 @@ macro lrs_ccall(f, args...)
   end
 end
 
-if 0 == (@lrs_ccall init Clong (Ptr{UInt8},) C_NULL)
+include("lrstypes.jl")
+
+if Clrs_false == (@lrs_ccall init Clong (Ptr{Cchar},) C_NULL)
   error("Initialization of LRS failed")
 end
 
-include("lrstypes.jl")
 include("matrix.jl")
 include("description.jl")
+include("conversion.jl")
 
 end # module
