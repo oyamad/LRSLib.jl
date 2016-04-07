@@ -21,13 +21,6 @@ getd{N}(m::LRSGeneratorMatrix{N}) = N+1
 function initmatrix(M::Matrix{Rational{BigInt}}, linset, Hrep::Bool)
   m = Clong(size(M, 1))
   n = Clong(size(M, 2))
-  # TODO not needed to pass linset like that
-  linsetarray = Vector{Clong}(length(linset))
-  i = 1
-  for j in linset
-    linsetarray[i] = j
-    i += 1
-  end
   Q = @lrs_ccall alloc_dat Ptr{Clrs_dat} (Ptr{Cchar},) C_NULL
   @lrs_ccall init_dat Void (Ptr{Clrs_dat}, Clong, Clong, Clong) Q m n Clong(Hrep ? 0 : 1)
   P = @lrs_ccall alloc_dic Ptr{Clrs_dic} (Ptr{Clrs_dat},) Q
