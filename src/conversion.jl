@@ -1,5 +1,5 @@
 export vertexenum
-function vertexenum{N}(m::LRSMatrix{N})
+function vertexenum(m::LRSMatrix)
   # code from here is borrowed from lrs_main
 
   # Pivot to a starting dictionary
@@ -15,6 +15,10 @@ function vertexenum{N}(m::LRSMatrix{N})
     println(getmat(lin))
   end
 
+  vertexenumend(m)
+end
+
+function vertexenumend{N}(m::LRSMatrix{N})
   # We initiate reverse search from this dictionary
   # getting new dictionaries until the search is complete
   # User can access each output line from output which is

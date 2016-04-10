@@ -2,9 +2,10 @@ export LRSMatrix, LRSInequalityMatrix, LRSGeneratorMatrix, setdebug
 abstract LRSMatrix{N}
 
 # TODO do this in this order
+# savem = unsafe_load(P).m
 # lrs_free_dic (P,Q);           # deallocate lrs_dic
+# Q.m = savem -----> Not possible :(
 # lrs_free_dat (Q);             # deallocate lrs_dat
-
 
 type LRSInequalityMatrix{N} <: LRSMatrix{N}
   P::Ptr{Clrs_dic}
@@ -48,6 +49,14 @@ end
 
 function setdebug(m::LRSMatrix, debug::Bool)
   @lrs_ccall setdebug Void (Ptr{Clrs_dat}, Clong) m.Q (debug ? Clrs_true : Clrs_false)
+end
+
+function extractlinset(Q::Clrs_dat)
+  linset = IntSet([])
+  for i in 1:Q.nlinearity
+    push!(linset, unsafe_load(Q.linearity, i))
+  end
+  linset
 end
 
 function myfree(l::LRSLinearitySpace)
@@ -112,4 +121,9 @@ function getsolution(m::LRSMatrix, col::Int)
   end
   @lrs_ccall clear_mp_vector Void (Clrs_mp_vector, Clong) output Q.n
   out
+end
+
+function checkindex(m::LRSMatrix, index::Int)
+  ret = @lrs_ccall checkindex Clong (Ptr{Clrs_dic}, Ptr{Clrs_dat}, Clong) m.P m.Q index
+  [:nonredundant, :redundant, :linearity][ret]
 end

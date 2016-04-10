@@ -80,14 +80,6 @@ function extractAb(P::Clrs_dic, Q::Clrs_dat, offset::Int)
   (b, A)
 end
 
-function extractlinset(Q::Clrs_dat)
-  linset = IntSet([])
-  for i in 1:Q.nlinearity
-    push!(linset, unsafe_load(Q.linearity, i))
-  end
-  linset
-end
-
 function Base.convert{N}(::Type{HRepresentation{Rational{BigInt}}}, matrix::LRSInequalityMatrix{N})
   P = unsafe_load(matrix.P)
   Q = unsafe_load(matrix.Q)

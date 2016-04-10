@@ -25,5 +25,7 @@ end
 include("matrix.jl")
 include("description.jl")
 include("conversion.jl")
+include("redund.jl")
+include("polyhedron.jl")
 
 end # module

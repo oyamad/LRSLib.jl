@@ -133,7 +133,7 @@ type Clrs_dat      # global problem data
   restart::Clong    # TRUE if restarting from some cobasis
   strace::Clong    # turn on  debug at basis # strace
   voronoi::Clong    # compute voronoi vertices by transformation
-        subtreesize::Clong       # in estimate mode, iterates if cob_est >= subtreesize
+  subtreesize::Clong       # in estimate mode, iterates if cob_est >= subtreesize
 
   # Variables for saving/restoring cobasis,  db
 

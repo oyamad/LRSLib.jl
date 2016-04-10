@@ -1,22 +1,33 @@
+# A = [1 1; -1 0; 0 -1]
+# b = [1, 0, 0]
+# linset = IntSet([1])
+# V = [0 1; 1 0]
+# vertex = IntSet([1,2])
+
 A = [1 1; -1 0; 0 -1]
 b = [1, 0, 0]
-linset = IntSet([1])
-V = [0 1; 1 0]
-vertex = IntSet([1,2])
+linset = IntSet([])
+V = [0 0; 0 1; 1 0]
+vertex = IntSet([1,2,3])
+
 
 ine = Polyhedra.HRepresentation(A, b, linset)
 ext = Polyhedra.VRepresentation(V, vertex)
-poly1 = LRSMatrix(ine)
-poly2 = LRSGeneratorMatrix(poly1)
-ineout1  = Polyhedra.Representation{Int}(poly1)
-extout1  = Polyhedra.Representation{Int}(poly2)
-println(ine)
-println(ineout1)
-println(ext)
-println(extout1)
 
-# poly2 = LRSMatrix(ext)
-# extout2  = Polyhedra.Representation{Int}(poly2)
-# println(ext)
-# println(extout2)
-# vertexenum(poly2)
+inem1 = LRSMatrix(ine)
+extm1 = LRSGeneratorMatrix(inem1)
+ine1  = Polyhedra.Representation{Int}(inem1)
+ext1  = Polyhedra.Representation{Int}(extm1)
+println(ine)
+println(ine1)
+println(ext)
+println(ext1)
+
+extm2 = LRSMatrix(ext)
+inem2 = LRSInequalityMatrix(extm2)
+ine2  = Polyhedra.Representation{Int}(inem2)
+ext2  = Polyhedra.Representation{Int}(extm2)
+println(ine)
+println(ine2)
+println(ext)
+println(ext2)
