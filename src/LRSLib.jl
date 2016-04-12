@@ -15,6 +15,13 @@ macro lrs_ccall(f, args...)
     ret
   end
 end
+macro lrs_ccall2(f, args...)
+  quote
+    ret = ccall(($"$f", liblrs), $(map(esc,args)...))
+    ret
+  end
+end
+
 
 include("lrstypes.jl")
 
@@ -23,7 +30,7 @@ if Clrs_false == (@lrs_ccall init Clong (Ptr{Cchar},) C_NULL)
 end
 
 include("matrix.jl")
-include("description.jl")
+include("representation.jl")
 include("conversion.jl")
 include("redund.jl")
 include("polyhedron.jl")

@@ -5,63 +5,64 @@ type LRSLibrary <: PolyhedraLibrary
 end
 
 type LRSPolyhedron{N} <: Polyhedron{N, Rational{BigInt}}
-  ine::Nullable{HRepresentation{Rational{BigInt}}}
+  ine::Nullable{LiftedHRepresentation{N, Rational{BigInt}}}
   inem::Nullable{LRSInequalityMatrix{N}}
-  ext::Nullable{VRepresentation{Rational{BigInt}}}
+  ext::Nullable{LiftedVRepresentation{N, Rational{BigInt}}}
   extm::Nullable{LRSGeneratorMatrix{N}}
   hlinearitydetected::Bool
   vlinearitydetected::Bool
   noredundantinequality::Bool
   noredundantgenerator::Bool
 
-  function LRSPolyhedron(ine::HRepresentation{Rational{BigInt}}, ext::VRepresentation{Rational{BigInt}}, hld::Bool, vld::Bool, nri::Bool, nrg::Bool)
-    if fulldim(ine) != fulldim(ext)
-      error("dimension does not match")
-    end
-    new{fulldim(ine)}(ine, nothing, ext, nothing, hld, vld, nri, nrg)
+  function LRSPolyhedron(ine::LiftedHRepresentation{N, Rational{BigInt}}, ext::LiftedVRepresentation{N, Rational{BigInt}}, hld::Bool, vld::Bool, nri::Bool, nrg::Bool)
+    new(ine, nothing, ext, nothing, hld, vld, nri, nrg)
   end
-  function LRSPolyhedron(ine::HRepresentation{Rational{BigInt}})
-    new{fulldim(ine)}(ine, nothing, nothing, nothing, false, false, false, false)
+  function LRSPolyhedron(ine::LiftedHRepresentation{N, Rational{BigInt}})
+    new(ine, nothing, nothing, nothing, false, false, false, false)
   end
-  function LRSPolyhedron(ext::VRepresentation{Rational{BigInt}})
-    new{fulldim(ine)}(nothing, nothing, ext, nothing, false, false, false, false)
+  function LRSPolyhedron(ext::LiftedVRepresentation{N, Rational{BigInt}})
+    new(nothing, nothing, ext, nothing, false, false, false, false)
   end
 end
 
-call{N, T}(::Type{LRSPolyhedron{N}}, repr::Representation{T}) = LRSPolyhedron{N}(Representation{Rational{BigInt}}(repr))
+call{N}(::Type{LRSPolyhedron{N}}, ine::HRepresentation{N, Rational{BigInt}}) = LRSPolyhedron{N}(LiftedHRepresentation{N, Rational{BigInt}}(ine))
+call{N}(::Type{LRSPolyhedron{N}}, ext::VRepresentation{N, Rational{BigInt}}) = LRSPolyhedron{N}(LiftedVRepresentation{N, Rational{BigInt}}(ext))
+call{N, T}(::Type{LRSPolyhedron{N}}, repr::Representation{N, T}) = LRSPolyhedron{N}(Representation{N, Rational{BigInt}}(repr))
 
 # Helpers
 function getine(p::LRSPolyhedron)
   if isnull(p.ine)
-    p.ine = Representation(vertexenumend(getextm(p)))
-    # Now p.extm is no more just after the getfirstbasis so it is no more valid (I think)
-    p.extm = nothing
+    if !isnull(p.inem) && checkfreshness(get(p.inem), :Fresh)
+      p.ine = LiftedHRepresentation(p.inem)
+    else
+      p.ine = LiftedHRepresentation(getextm(p, :Fresh))
+      p.hlinearitydetected = true
+      p.noredundantinequality = true
+    end
   end
   get(p.ine)
 end
-function getinem(p::LRSPolyhedron)
-  if isnull(p.inem)
-    ine = getine(p)
-    m = LRSMatrix(ine)
-    getfirstbasis(m)
-    p.inem = m
+function getinem(p::LRSPolyhedron, fresh::Symbol=:AnyFreshness)
+  if isnull(p.inem) || !checkfreshness(get(p.inem), fresh)
+    p.inem = LRSMatrix(getine(p))
   end
   get(p.inem)
 end
 function getext(p::LRSPolyhedron)
   if isnull(p.ext)
-    p.ext = Representation(vertexenumend(getinem(p)))
-    # Now p.inem is no more just after the getfirstbasis so it is no more valid (I think)
-    p.inem = nothing
+    if !isnull(p.extm) && checkfreshness(get(p.extm), :Fresh)
+      p.ext = LiftedHRepresentation(p.extm)
+    else
+      p.ext = LiftedVRepresentation(getinem(p, :Fresh))
+      p.vlinearitydetected = true
+      p.noredundantgenerator = true
+    end
   end
   get(p.ext)
 end
-function getextm(p::LRSPolyhedron)
-  if isnull(p.extm)
-    ext = getext(p)
-    m = LRSMatrix(ext)
-    getfirstbasis(m)
-    p.extm = m
+function getextm(p::LRSPolyhedron, fresh::Symbol=:AnyFreshness)
+  if isnull(p.extm) || !checkfreshness(get(p.extm), fresh)
+    p.extm = LRSMatrix(getext(p))
   end
   get(p.extm)
 end
@@ -76,25 +77,21 @@ function clearfield!(p::LRSPolyhedron)
   noredundantinequality = false
   noredundantgenerator = false
 end
-# TODO check dim of HRepresentation
-function updateine!{N}(p::LRSPolyhedron{N}, ine::HRepresentation)
-  if N != fulldim(ine)
-    error("dimension does not match")
-  end
+function updateine!{N}(p::LRSPolyhedron{N}, ine::LiftedHRepresentation{N, Rational{BigInt}})
   clearfield!(p)
   p.ine = ine
 end
-function updateext!{N}(p::LRSPolyhedron{N}, ext::LRSGeneratorMatrix)
-  if N != fulldim(ext)
-    error("dimension does not match")
-  end
+function updateext!{N}(p::LRSPolyhedron{N}, ext::LiftedVRepresentation{N, Rational{BigInt}})
   clearfield!(p)
   p.ext = ext
 end
 
 
 # Implementation of Polyhedron's mandatory interface
-polyhedron(repr::Representation, ::LRSLibrary) = LRSPolyhedron{fulldim(repr)}(repr)
+polyhedron{N}(repr::Representation{N}, ::LRSLibrary) = LRSPolyhedron{N}(repr)
+
+getlibraryfor{T<:Union{Int,Rational}}(p::LRSPolyhedron, ::Type{T}) = LRSLibrary()
+
 function Base.copy{N}(p::LRSPolyhedron{N})
   ine = nothing
   if !isnull(p.ine)
@@ -107,16 +104,16 @@ function Base.copy{N}(p::LRSPolyhedron{N})
   LRSPolyhedron{N}(ine, ext, p.hlinearitydetected, p.vlinearitydetected, p.noredundantinequality, p.noredundantgenerator)
 end
 function Base.push!(p::LRSPolyhedron, ine::HRepresentation)
-  updateine!(intersect(getine(p), ine))
+  updateine!(p, intersect(getine(p), ine))
 end
 function Base.push!(p::LRSPolyhedron, ext::VRepresentation)
-  updateext!(getext(p) + ext)
+  updateext!(p, getext(p) + ext)
 end
 function inequalitiesarecomputed(p::LRSPolyhedron)
   !isnull(p.ine)
 end
 function getinequalities(p::LRSPolyhedron)
-  copy(getine(p.ine))
+  copy(getine(p))
 end
 function generatorsarecomputed(p::LRSPolyhedron)
   !isnull(p.ext)
@@ -125,31 +122,63 @@ function getgenerators(p::LRSPolyhedron)
   copy(getext(p))
 end
 #eliminate(p::Polyhedron, delset::IntSet)                     = error("not implemented")
-function detectlinearities!(p::LRSPolyhedron)
-  ine = getine(p)
-  inem = getinem(p)
-  ine.linset = extractlinset(inem)
+function detecthlinearities!(p::LRSPolyhedron)
+  if !p.hlinearitydetected
+    getext(p)
+    p.inem = nothing
+    p.ine = nothing
+    getine(p)
+    # getine sets hlinearities as detected and no redundant ineq.
+  end
+end
+function detectvlinearities!(p::LRSPolyhedron)
+  if !p.vlinearitydetected
+    getine(p)
+    p.extm = nothing
+    p.ext = nothing
+    getext(p)
+    # getext sets vlinearities as detected and no redundant gen.
+  end
 end
 function removeredundantinequalities!(p::LRSPolyhedron)
-  ine = getine(p)
-  inem = getinem(p)
-  redset = redundend(inem)
-  redvec = collect(redset)
-  ine.A = ine.A[redvec,:]
-  ine.b = ine.b[redvec]
-  # TODO Update linset (put them at beginning)
+  #if !p.noredundantinequality
+    ine = getine(p)
+    inem = getinem(p, :AlmostFresh) # FIXME does it need to be fresh ?
+    linset = getinputlinsubset(inem)
+    redset = redund(inem)
+    nonred = setdiff(IntSet(1:size(ine.A, 1)), redset)
+    nonred = collect(setdiff(nonred, linset))
+    lin = collect(linset)
+    ine.A = [ine.A[lin,:]; ine.A[nonred,:]]
+    ine.linset = IntSet(1:length(linset))
+    p.noredundantinequality = true
+  #end
 end
 function removeredundantgenerators!(p::LRSPolyhedron)
-  ext = getext(p)
-  extm = getextm(p)
-  redset = redundend(extm)
-  redvec = collect(redset)
-  ext.V = ext.V[redvec,:] # TODO if ext is split...
-  # TODO Update linset (put them at beginning)
+  if !p.noredundantgenerator
+    detectvlinearities!(p)
+    ext = getext(p)
+    extm = getextm(p, :AlmostFresh) # FIXME does it need to be fresh ?
+    redset = redund(extm)
+    nonred = setdiff(IntSet(1:size(ext.R, 1)), redset)
+    nonred = collect(setdiff(nonred, ext.linset))
+    lin = collect(ext.linset)
+    ext.R = [ext.R[lin,:]; ext.R[nonred,:]]
+    ext.linset = IntSet(1:length(ext.linset))
+    p.noredundantgenerator = true
+  end
 end
+#function getredundantinequalities(p::LRSPolyhedron)
+#  redund(getinem(p, :AlmostFresh))
+#end
 function isredundantinequality(p::LRSPolyhedron, i::Integer)
-  redundendi(getinem(p), i)
+  redundi(getinem(p, :AlmostFresh), i) # FIXME does it need to be fresh ?
 end
 function isredundantgenerator(p::LRSPolyhedron, i::Integer)
-  redundendi(getextm(p), i)
+  redundi(getextm(p, :AlmostFresh), i) # FIXME does it need to be fresh ?
+end
+# Optional interface
+function Polyhedra.loadpolyhedron!(p::LRSPolyhedron, filename::AbstractString, ::Type{Val{:ext}})
+  clearfield!(p)
+  p.extm = LRSGeneratorMatrix(string(filename, ".ext"))
 end
