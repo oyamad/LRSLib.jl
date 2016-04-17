@@ -7,6 +7,5 @@ As written in the [user guide of lrs](http://cgm.cs.mcgill.ca/~avis/C/lrslib/USE
 
 I have have [fork of lrs](https://github.com/blegat/lrslib) to add a few functions to help doing the wrapper.
 These changes are not upstream yet so this version is used instead of the upstream version.
-I still need to implement the Polyhedra.jl interface but the lower level interface already works.
 
 [![Build Status](https://travis-ci.org/blegat/LRSLib.jl.svg?branch=master)](https://travis-ci.org/blegat/LRSLib.jl)
