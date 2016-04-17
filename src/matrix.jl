@@ -73,11 +73,9 @@ function myfree(l::LRSLinearitySpace)
   end
 end
 
-# TODO do this in this order
-# savem = unsafe_load(P).m
-# lrs_free_dic (P,Q);           # deallocate lrs_dic
-# Q.m = savem -----> Not possible :(
-# lrs_free_dat (Q);             # deallocate lrs_dat
+function myfree(m::LRSMatrix)
+  @lrs_ccall free_dic_and_dat Void (Ptr{Clrs_dic}, Ptr{Clrs_dat}) m.P m.Q
+end
 
 type LRSInequalityMatrix{N} <: LRSMatrix{N}
   P::Ptr{Clrs_dic}
@@ -85,7 +83,9 @@ type LRSInequalityMatrix{N} <: LRSMatrix{N}
   status::Symbol
   lin::Nullable{LRSLinearitySpace{N}}
   function LRSInequalityMatrix(P::Ptr{Clrs_dic}, Q::Ptr{Clrs_dat})
-    new(P, Q, :AtNoBasis, nothing)
+    m = new(P, Q, :AtNoBasis, nothing)
+    finalizer(m, myfree)
+    m
   end
 end
 
@@ -100,7 +100,9 @@ type LRSGeneratorMatrix{N} <: LRSMatrix{N}
   status::Symbol
   lin::Nullable{LRSLinearitySpace{N}}
   function LRSGeneratorMatrix(P::Ptr{Clrs_dic}, Q::Ptr{Clrs_dat})
-    new(P, Q, :AtNoBasis, nothing)
+    m = new(P, Q, :AtNoBasis, nothing)
+    finalizer(m, myfree)
+    m
   end
 end
 
