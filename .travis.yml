@@ -6,8 +6,15 @@ os:
 julia:
   - release
   - nightly
+addons:
+  apt_packages:
+    - libgmp-dev
 notifications:
   email: false
+before_script:
+  - julia -e 'Pkg.clone("git://github.com/blegat/Polyhedra.jl.git")'
+  - julia -e 'Pkg.clone("git://github.com/blegat/CDDLib.jl.git")'
+  - julia -e 'Pkg.build("CDDLib")'
 # uncomment the following lines to override the default test script
 #script:
 #  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
