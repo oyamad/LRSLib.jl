@@ -1,7 +1,7 @@
 module LRSLib
 
 using BinDeps
-using Polyhedra
+importall Polyhedra
 
 if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
   include("../deps/deps.jl")
@@ -30,7 +30,6 @@ if Clrs_false == (@lrs_ccall init Clong (Ptr{Cchar},) C_NULL)
 end
 
 include("matrix.jl")
-include("representation.jl")
 include("conversion.jl")
 include("redund.jl")
 include("polyhedron.jl")

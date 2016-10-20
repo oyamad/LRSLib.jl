@@ -1,25 +1,5 @@
 export LRSMatrix, LRSInequalityMatrix, LRSGeneratorMatrix, setdebug, debugA
-abstract LRSMatrix{N}
-
-function checkfreshness(m::LRSMatrix, fresh::Symbol)
-  fresh == :AnyFreshNess ||
-  (fresh == :Fresh && m.status in [:AtNoBasis, :AtFirstBasis, :Empty]) ||
-  (fresh == :AlmostFresh && m.status in [:AtNoBasis, :AtFirstBasis, :Empty, :RedundancyChecked])
-end
-
-type LRSLinearitySpace{N}
-  Lin::Clrs_mp_matrix
-  nlin::Int
-  n::Int
-  hull::Bool
-  homogeneous::Bool
-
-  function LRSLinearitySpace(Lin::Clrs_mp_matrix, nlin, n, hull, homogeneous)
-    m = new(Lin, nlin, n, hull, homogeneous)
-    finalizer(m, myfree)
-    m
-  end
-end
+import Base.eltype
 
 function lrs_alloc_dat()
   @lrs_ccall alloc_dat Ptr{Clrs_dat} (Ptr{Cchar},) C_NULL
@@ -45,6 +25,7 @@ function initmatrix(filename::AbstractString)
   (P,Q)
 end
 
+# FIXME still needed ?
 function initmatrix(M::Matrix{Rational{BigInt}}, linset, Hrep::Bool)
   m = Clong(size(M, 1))
   n = Clong(size(M, 2))
@@ -67,17 +48,52 @@ function initmatrix(M::Matrix{Rational{BigInt}}, linset, Hrep::Bool)
 end
 
 
-function myfree(l::LRSLinearitySpace)
-  if l.nlin > 0
-    @lrs_ccall clear_mp_matrix Void (Clrs_mp_matrix, Clong, Clong) l.Lin l.nlin l.n
+function fillmatrix(inequality::Bool, P::Ptr{Clrs_dic}, Q::Ptr{Clrs_dat}, itr1, offset=0)
+  for (i, item) in enumerate(itr1)
+    a = vec(coord(lift(item)))
+    setrow(P, Q, offset+i, inequality ? -a : a, !islin(item))
   end
 end
 
-function myfree(m::LRSMatrix)
-  @lrs_ccall free_dic_and_dat Void (Ptr{Clrs_dic}, Ptr{Clrs_dat}) m.P m.Q
+function initmatrix(inequality, itr1, itr2=nothing)
+  n = fulldim(itr1)+1
+  m = length(itr1)
+  if !(itr2 === nothing)
+    m += length(itr2)
+  end
+  Q = lrs_alloc_dat()
+  @lrs_ccall init_dat Void (Ptr{Clrs_dat}, Clong, Clong, Clong) Q m n Clong(inequality ? 0 : 1)
+  P = lrs_alloc_dic(Q)
+  #Q->getvolume= TRUE; # compute the volume # TODO cheap do it
+  fillmatrix(inequality, P, Q, itr1)
+  if !(itr2 === nothing)
+    fillmatrix(inequality, P, Q, itr2, length(itr1))
+  end
+  # This is the objective. If I have no objective LRS might fail
+  if inequality
+    setrow(P, Q, 0, ones(Rational{BigInt}, n), true)
+  end
+  (P, Q)
 end
 
-type LRSInequalityMatrix{N} <: LRSMatrix{N}
+
+# Representation
+
+type LRSLinearitySpace{N}
+  Lin::Clrs_mp_matrix
+  nlin::Int
+  n::Int
+  hull::Bool
+  homogeneous::Bool
+
+  function LRSLinearitySpace(Lin::Clrs_mp_matrix, nlin, n, hull, homogeneous)
+    m = new(Lin, nlin, n, hull, homogeneous)
+    finalizer(m, myfree)
+    m
+  end
+end
+
+type LRSInequalityMatrix{N} <: HRepresentation{N, Rational{BigInt}}
   P::Ptr{Clrs_dic}
   Q::Ptr{Clrs_dat}
   status::Symbol
@@ -88,13 +104,12 @@ type LRSInequalityMatrix{N} <: LRSMatrix{N}
     m
   end
 end
+changefulldim{N}(::Type{LRSInequalityMatrix{N}}, NewN) = LRSInequalityMatrix{NewN}
+decomposedfast(ine::LRSInequalityMatrix) = false
+eltype{N}(::Type{LRSInequalityMatrix{N}}) = Rational{BigInt}
+eltype(::LRSInequalityMatrix) = Rational{BigInt}
 
-function LRSInequalityMatrix(filename::AbstractString)
-  P, Q = initmatrix(filename)
-  LRSInequalityMatrix{unsafe_load(P).d}(P, Q)
-end
-
-type LRSGeneratorMatrix{N} <: LRSMatrix{N}
+type LRSGeneratorMatrix{N} <: VRepresentation{N, Rational{BigInt}}
   P::Ptr{Clrs_dic}
   Q::Ptr{Clrs_dat}
   status::Symbol
@@ -105,11 +120,69 @@ type LRSGeneratorMatrix{N} <: LRSMatrix{N}
     m
   end
 end
+changefulldim{N}(::Type{LRSGeneratorMatrix{N}}, NewN) = LRSGeneratorMatrix{NewN}
+decomposedfast(ine::LRSGeneratorMatrix) = false
+eltype{N}(::Type{LRSGeneratorMatrix{N}}) = Rational{BigInt}
+eltype(::LRSGeneratorMatrix) = Rational{BigInt}
+
+typealias LRSMatrix{N} Union{LRSInequalityMatrix{N}, LRSGeneratorMatrix{N}}
+
+function linset(matrix::LRSMatrix)
+  extractinputlinset(Q)
+end
+function Base.length(matrix::LRSMatrix)
+  unsafe_load(matrix.P).m
+end
+
+LRSMatrix(hrep::HRepresentation) = LRSInequalityMatrix(hrep)
+LRSMatrix(vrep::VRepresentation) = LRSGeneratorMatrix(vrep)
+
+function checkfreshness(m::LRSMatrix, fresh::Symbol)
+  fresh == :AnyFreshNess ||
+  (fresh == :Fresh && m.status in [:AtNoBasis, :AtFirstBasis, :Empty]) ||
+  (fresh == :AlmostFresh && m.status in [:AtNoBasis, :AtFirstBasis, :Empty, :RedundancyChecked])
+end
+
+function myfree(l::LRSLinearitySpace)
+  if l.nlin > 0
+    @lrs_ccall clear_mp_matrix Void (Clrs_mp_matrix, Clong, Clong) l.Lin l.nlin l.n
+  end
+end
+
+function myfree(m::LRSMatrix)
+  @lrs_ccall free_dic_and_dat Void (Ptr{Clrs_dic}, Ptr{Clrs_dat}) m.P m.Q
+end
+
+# H-representation
+
+#LRSInequalityMatrix{N,T}(rep::Rep{N,T}) = LRSInequalityMatrix{N,polytypefor(T), mytypefor(T)}(rep) # TODO finish this line
+
+function LRSInequalityMatrix(filename::AbstractString)
+  P, Q = initmatrix(filename)
+  LRSInequalityMatrix{unsafe_load(P).d}(P, Q)
+end
+LRSInequalityMatrix{N}(rep::HRep{N}) = LRSInequalityMatrix{N}(rep)
+
+function (::Type{LRSInequalityMatrix{N}}){N}(it::HRepIterator{N, Rational{BigInt}})
+  P, Q = initmatrix(true, it)
+  LRSInequalityMatrix{N}(P, Q)
+end
+
+nhreps(matrix::LRSInequalityMatrix) = length(matrix)
+neqs(matrix::LRSInequalityMatrix) = unsafe_load(matrix.Q).nlinearity
+nineqs(matrix::LRSInequalityMatrix) = length(matrix) - neqs(matrix)
+
+starthrep(ine::LRSInequalityMatrix) = 1
+donehrep(ine::LRSInequalityMatrix, state) = state > length(ine)
+nexthrep(ine::LRSInequalityMatrix, state) = (extractrow(ine, state), state+1)
+
+# V-representation
 
 function LRSGeneratorMatrix(filename::AbstractString)
-  P, Q = initmatrix(filename)
-  LRSGeneratorMatrix{unsafe_load(m.P).d-1}(P, Q)
+  d, P, Q = initmatrix(filename)
+  LRSGeneratorMatrix{unsafe_load(P).d-1}(P, Q)
 end
+LRSGeneratorMatrix{N}(rep::VRep{N}) = LRSGeneratorMatrix{N}(rep)
 
 #I should also remove linearity (should I remove one if hull && homogeneous ?)
 #getd{N}(m::LRSInequalityMatrix{N}) = N
@@ -143,6 +216,57 @@ function debugA(m::LRSMatrix)
   end
 end
 
+function extractrow(P::Clrs_dic, Q::Clrs_dat, N, i, offset)
+  #d = Q.n-offset-1 # FIXME when it is modified...
+  a = Vector{Rational{BigInt}}(N+1)
+  gcd = extractbigintat(Q.Gcd, 1+i) # first row is the objective
+  lcm = extractbigintat(Q.Lcm, 1+i)
+  row = unsafe_load(P.A, 1+i)
+  extractthisrow(i::Int) = (extractbigintat(row, offset+i) * gcd) // lcm
+  for j in 1:N+1
+    a[j] = extractthisrow(j)
+  end
+  a
+end
+
+function extractrow{N}(matrix::LRSInequalityMatrix{N}, i::Int)
+  P = unsafe_load(matrix.P)
+  Q = unsafe_load(matrix.Q)
+  b = extractrow(P, Q, N, i, 0)
+  β = b[1]
+  a = -b[2:end]
+  if isininputlinset(Q, i)
+    HyperPlane(a, β)
+  else
+    HalfSpace(a, β)
+  end
+end
+
+function extractrow{N}(matrix::LRSGeneratorMatrix{N}, i::Int)
+  P = unsafe_load(matrix.P)
+  Q = unsafe_load(matrix.Q)
+  #d = Q.n-offset-1 # FIXME when it is modified...
+  b = extractrow(P, Q, N, i, 1)
+  ispoint = b[1]
+  islin = isininputlinset(Q, i)
+  @assert ispoint == zero(T) || ispoint == one(T)
+  a = b[2:end]
+  if ispoint == zero(T)
+    if islin
+      Line(a)
+    else
+      Ray(a)
+    end
+  else
+    if islin
+      SymPoint(a)
+    else
+      a
+    end
+  end
+end
+
+# FIXME remove
 function extractA(P::Clrs_dic, Q::Clrs_dat, offset::Int)
   m = P.m
   d = P.d-offset
@@ -158,6 +282,15 @@ function extractA(P::Clrs_dic, Q::Clrs_dat, offset::Int)
     end
   end
   A
+end
+
+function isininputlinset(Q::Clrs_dat, j)
+  for i in 1:Q.nlinearity
+    if j == unsafe_load(Q.linearity, i)
+      return true
+    end
+  end
+  false
 end
 
 function extractinputlinset(Q::Clrs_dat)

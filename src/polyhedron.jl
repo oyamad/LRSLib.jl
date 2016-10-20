@@ -1,41 +1,43 @@
 export LRSLibrary
-importall Polyhedra
 
 type LRSLibrary <: PolyhedraLibrary
 end
 
 type LRSPolyhedron{N} <: Polyhedron{N, Rational{BigInt}}
-  ine::Nullable{LiftedHRepresentation{N, Rational{BigInt}}}
+  ine::Nullable{HRepresentation{N, Rational{BigInt}}}
   inem::Nullable{LRSInequalityMatrix{N}}
-  ext::Nullable{LiftedVRepresentation{N, Rational{BigInt}}}
+  ext::Nullable{VRepresentation{N, Rational{BigInt}}}
   extm::Nullable{LRSGeneratorMatrix{N}}
   hlinearitydetected::Bool
   vlinearitydetected::Bool
   noredundantinequality::Bool
   noredundantgenerator::Bool
 
-  function LRSPolyhedron(ine::LiftedHRepresentation{N, Rational{BigInt}}, ext::LiftedVRepresentation{N, Rational{BigInt}}, hld::Bool, vld::Bool, nri::Bool, nrg::Bool)
+  function LRSPolyhedron(ine::HRepresentation{N, Rational{BigInt}}, ext::VRepresentation{N, Rational{BigInt}}, hld::Bool, vld::Bool, nri::Bool, nrg::Bool)
     new(ine, nothing, ext, nothing, hld, vld, nri, nrg)
   end
-  function LRSPolyhedron(ine::LiftedHRepresentation{N, Rational{BigInt}})
+  function LRSPolyhedron(ine::HRepresentation{N, Rational{BigInt}})
     new(ine, nothing, nothing, nothing, false, false, false, false)
   end
-  function LRSPolyhedron(ext::LiftedVRepresentation{N, Rational{BigInt}})
+  function LRSPolyhedron(ext::VRepresentation{N, Rational{BigInt}})
     new(nothing, nothing, ext, nothing, false, false, false, false)
   end
 end
 
-call{N}(::Type{LRSPolyhedron{N}}, ine::HRepresentation{N, Rational{BigInt}}) = LRSPolyhedron{N}(LiftedHRepresentation{N, Rational{BigInt}}(ine))
-call{N}(::Type{LRSPolyhedron{N}}, ext::VRepresentation{N, Rational{BigInt}}) = LRSPolyhedron{N}(LiftedVRepresentation{N, Rational{BigInt}}(ext))
-call{N, T}(::Type{LRSPolyhedron{N}}, repr::Representation{N, T}) = LRSPolyhedron{N}(Representation{N, Rational{BigInt}}(repr))
+eltype{N}(::Type{LRSPolyhedron{N}}) = Rational{BigInt}
+eltype(::LRSPolyhedron) = Rational{BigInt}
+
+(::Type{LRSPolyhedron}){N}(ine::HRepresentation{N, Rational{BigInt}}) = LRSPolyhedron{N}(HRepresentation{N, Rational{BigInt}}(ine))
+(::Type{LRSPolyhedron}){N}(ext::VRepresentation{N, Rational{BigInt}}) = LRSPolyhedron{N}(VRepresentation{N, Rational{BigInt}}(ext))
+(::Type{LRSPolyhedron}){N, T}(rep::Representation{N, T}) = LRSPolyhedron{N}(Representation{N, Rational{BigInt}}(rep))
 
 # Helpers
 function getine(p::LRSPolyhedron)
   if isnull(p.ine)
     if !isnull(p.inem) && checkfreshness(get(p.inem), :Fresh)
-      p.ine = LiftedHRepresentation(p.inem)
+      p.ine = p.inem
     else
-      p.ine = LiftedHRepresentation(getextm(p, :Fresh))
+      p.ine = getextm(p, :Fresh)
       p.hlinearitydetected = true
       p.noredundantinequality = true
     end
@@ -51,9 +53,9 @@ end
 function getext(p::LRSPolyhedron)
   if isnull(p.ext)
     if !isnull(p.extm) && checkfreshness(get(p.extm), :Fresh)
-      p.ext = LiftedHRepresentation(p.extm)
+      p.ext = p.extm
     else
-      p.ext = LiftedVRepresentation(getinem(p, :Fresh))
+      p.ext = getinem(p, :Fresh)
       p.vlinearitydetected = true
       p.noredundantgenerator = true
     end
@@ -77,11 +79,11 @@ function clearfield!(p::LRSPolyhedron)
   noredundantinequality = false
   noredundantgenerator = false
 end
-function updateine!{N}(p::LRSPolyhedron{N}, ine::LiftedHRepresentation{N, Rational{BigInt}})
+function updateine!{N}(p::LRSPolyhedron{N}, ine::HRepresentation{N, Rational{BigInt}})
   clearfield!(p)
   p.ine = ine
 end
-function updateext!{N}(p::LRSPolyhedron{N}, ext::LiftedVRepresentation{N, Rational{BigInt}})
+function updateext!{N}(p::LRSPolyhedron{N}, ext::VRepresentation{N, Rational{BigInt}})
   clearfield!(p)
   p.ext = ext
 end
