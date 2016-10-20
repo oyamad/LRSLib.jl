@@ -47,7 +47,7 @@ lrssrcdir = joinpath(BinDeps.srcdir(liblrs), lrsname)
 lrsprefixdir = joinpath(BinDeps.usrdir(liblrs))
 lrslibdir = joinpath(lrsprefixdir, "lib")
 
-targetdirs = AbstractString["liblrsgmp.so"]
+targetdirs = AbstractString["liblrsgmp.$(Libdl.dlext)"]
 
 provides(BuildProcess,
 	(@build_steps begin
@@ -56,9 +56,9 @@ provides(BuildProcess,
 		CreateDirectory(lrslibdir)
 		@build_steps begin
 			ChangeDirectory(lrssrcdir)
-			FileRule(joinpath(lrslibdir,"liblrsgmp.so"),@build_steps begin
+			FileRule(joinpath(lrslibdir,"liblrsgmp.$(Libdl.dlext)"),@build_steps begin
 				`make all-shared`
-				`cp liblrsgmp.so $lrslibdir/liblrsgmp.so`
+				`cp liblrsgmp.$(Libdl.dlext) $lrslibdir/liblrsgmp.$(Libdl.dlext)`
 			end)
 		end
 	end),liblrs)
