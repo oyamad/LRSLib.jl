@@ -1,5 +1,5 @@
 export LRSMatrix, LRSInequalityMatrix, LRSGeneratorMatrix, setdebug, debugA
-import Base.eltype
+import Base.eltype, Base.copy
 
 function lrs_alloc_dat()
   @lrs_ccall alloc_dat Ptr{Clrs_dat} (Ptr{Cchar},) C_NULL
@@ -128,7 +128,7 @@ eltype(::LRSGeneratorMatrix) = Rational{BigInt}
 typealias LRSMatrix{N} Union{LRSInequalityMatrix{N}, LRSGeneratorMatrix{N}}
 
 function linset(matrix::LRSMatrix)
-  extractinputlinset(Q)
+  extractinputlinset(unsafe_load(matrix.Q))
 end
 function Base.length(matrix::LRSMatrix)
   unsafe_load(matrix.P).m
@@ -163,8 +163,14 @@ function LRSInequalityMatrix(filename::AbstractString)
 end
 LRSInequalityMatrix{N}(rep::HRep{N}) = LRSInequalityMatrix{N}(rep)
 
+copy{N}(ine::LRSInequalityMatrix{N}) = LRSInequalityMatrix{N}(hrep(ine))
+
 function (::Type{LRSInequalityMatrix{N}}){N}(it::HRepIterator{N, Rational{BigInt}})
   P, Q = initmatrix(true, it)
+  LRSInequalityMatrix{N}(P, Q)
+end
+function (::Type{LRSInequalityMatrix{N}}){N}(; eqs=nothing, ineqs=nothing)
+  P, Q = initmatrix(true, eqs, ineqs)
   LRSInequalityMatrix{N}(P, Q)
 end
 
@@ -183,6 +189,23 @@ function LRSGeneratorMatrix(filename::AbstractString)
   LRSGeneratorMatrix{unsafe_load(P).d-1}(P, Q)
 end
 LRSGeneratorMatrix{N}(rep::VRep{N}) = LRSGeneratorMatrix{N}(rep)
+
+copy{N}(ext::LRSGeneratorMatrix{N}) = LRSGeneratorMatrix{N}(vrep(ext))
+
+function (::Type{LRSGeneratorMatrix{N}}){N}(it::VRepIterator{N, Rational{BigInt}})
+  P, Q = initmatrix(false, it)
+  LRSGeneratorMatrix{N}(P, Q)
+end
+function (::Type{LRSGeneratorMatrix{N}}){N}(; rays=nothing, points=nothing)
+  P, Q = initmatrix(false, rays, points)
+  LRSGeneratorMatrix{N}(P, Q)
+end
+
+nvreps(ext::LRSGeneratorMatrix) = length(ext)
+
+startvrep(ext::LRSGeneratorMatrix) = 1
+donevrep(ext::LRSGeneratorMatrix, state) = state > length(ext)
+nextvrep(ext::LRSGeneratorMatrix, state) = (extractrow(ext, state), state+1)
 
 #I should also remove linearity (should I remove one if hull && homogeneous ?)
 #getd{N}(m::LRSInequalityMatrix{N}) = N
@@ -229,6 +252,12 @@ function extractrow(P::Clrs_dic, Q::Clrs_dat, N, i, offset)
   a
 end
 
+function warn_fresh(m::LRSMatrix)
+    if !checkfreshness(m, :Fresh)
+        warn("Extracting the rows of an LRS matrix after it has been used for representation conversion does not give the correct elements of the polyhedron it represents")
+    end
+end
+
 function extractrow{N}(matrix::LRSInequalityMatrix{N}, i::Int)
   P = unsafe_load(matrix.P)
   Q = unsafe_load(matrix.Q)
@@ -249,9 +278,9 @@ function extractrow{N}(matrix::LRSGeneratorMatrix{N}, i::Int)
   b = extractrow(P, Q, N, i, 1)
   ispoint = b[1]
   islin = isininputlinset(Q, i)
-  @assert ispoint == zero(T) || ispoint == one(T)
+  @assert ispoint == zero(Rational{BigInt}) || ispoint == one(Rational{BigInt})
   a = b[2:end]
-  if ispoint == zero(T)
+  if ispoint == zero(Rational{BigInt})
     if islin
       Line(a)
     else
