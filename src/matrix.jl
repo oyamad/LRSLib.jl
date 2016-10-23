@@ -1,4 +1,4 @@
-export LRSMatrix, LRSInequalityMatrix, LRSGeneratorMatrix, setdebug, debugA
+export LRSMatrix, LRSInequalityMatrix, LRSGeneratorMatrix, setdebug
 import Base.eltype, Base.copy
 
 function lrs_alloc_dat()
@@ -224,21 +224,6 @@ function setdebug(m::LRSMatrix, debug::Bool)
   @lrs_ccall setdebug Void (Ptr{Clrs_dat}, Clong) m.Q (debug ? Clrs_true : Clrs_false)
 end
 
-function debugA(m::LRSMatrix)
-  P = unsafe_load(m.P)
-  Q = unsafe_load(m.Q)
-  m = P.m
-  d = P.d
-  for i in 1:m+1
-    row = unsafe_load(P.A, i)
-    for j in 1:d+1
-      x = extractbigintat(row, j)
-      print(" $x")
-    end
-    println()
-  end
-end
-
 function extractrow(P::Clrs_dic, Q::Clrs_dat, N, i, offset)
   #d = Q.n-offset-1 # FIXME when it is modified...
   a = Vector{Rational{BigInt}}(N+1)
@@ -293,24 +278,6 @@ function extractrow{N}(matrix::LRSGeneratorMatrix{N}, i::Int)
       a
     end
   end
-end
-
-# FIXME remove
-function extractA(P::Clrs_dic, Q::Clrs_dat, offset::Int)
-  m = P.m
-  d = P.d-offset
-  #d = Q.n-offset-1 # FIXME when it is modified...
-  A = Matrix{Rational{BigInt}}(m, d+1)
-  for i in 1:m
-    gcd = extractbigintat(Q.Gcd, 1+i) # first row is the objective
-    lcm = extractbigintat(Q.Lcm, 1+i)
-    row = unsafe_load(P.A, 1+i)
-    extractthisrow(i::Int) = (extractbigintat(row, offset+i) * gcd) // lcm
-    for j in 1:d+1
-      A[i, j] = extractthisrow(j)
-    end
-  end
-  A
 end
 
 function isininputlinset(Q::Clrs_dat, j)

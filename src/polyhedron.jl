@@ -34,10 +34,6 @@ decomposedvfast{N}(p::LRSPolyhedron{N}) = decomposedvfast(LRSPolyhedron{N})
 eltype{N}(::Type{LRSPolyhedron{N}}) = Rational{BigInt}
 eltype(::LRSPolyhedron) = Rational{BigInt}
 
-(::Type{LRSPolyhedron}){N}(ine::HRepresentation{N, Rational{BigInt}}) = LRSPolyhedron{N}(HRepresentation{N, Rational{BigInt}}(ine))
-(::Type{LRSPolyhedron}){N}(ext::VRepresentation{N, Rational{BigInt}}) = LRSPolyhedron{N}(VRepresentation{N, Rational{BigInt}}(ext))
-(::Type{LRSPolyhedron}){N, T}(rep::Representation{N, T}) = LRSPolyhedron{N}(Representation{N, Rational{BigInt}}(rep))
-
 # Helpers
 function getine(p::LRSPolyhedron)
   if isnull(p.ine)
