@@ -1,9 +1,10 @@
 using LRSLib
-using Base.Test
-using CDDLib # need it for float
+using FactCheck
 
 using Polyhedra
-#include("cube.jl")
-#include("simplex.jl")
+include("cube.jl")
+include("simplex.jl")
 
 include("polyhedron.jl")
+
+FactCheck.exitstatus()
