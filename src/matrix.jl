@@ -311,7 +311,7 @@ function getinputlinsubset(m::LRSMatrix)
   if m.status == :AtNoBasis
     getfirstbasis(m)
   end
-  extractinputlinset(unsafe_load(m.Q))
+  linset(m)
 end
 function getoutputlinset(m::LRSMatrix)
   if m.status == :AtNoBasis
