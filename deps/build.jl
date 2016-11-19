@@ -42,7 +42,6 @@ end
 provides(Sources,
         Dict(URI(forked_repo) => liblrs), unpacked_dir="$lrsname")
 
-src_dir = joinpath(BinDeps.srcdir(liblrs), lrsname)
 lrssrcdir = joinpath(BinDeps.srcdir(liblrs), lrsname)
 lrsprefixdir = joinpath(BinDeps.usrdir(liblrs))
 lrslibdir = joinpath(lrsprefixdir, "lib")
