@@ -19,7 +19,7 @@ official_repo = "http://cgm.cs.mcgill.ca/~avis/C/lrslib/archive/$lrsname.tar.gz"
 forked_repo = "https://github.com/blegat/lrslib/archive/$lrslib_commit.zip"
 
 #GMP
-@linux_only begin
+@static if is_linux()
   const has_apt = try success(`apt-get -v`) catch e false end
   const has_yum = try success(`yum --version`) catch e false end
   const has_pacman = try success(`pacman -Qq`) catch e false end
