@@ -48,18 +48,40 @@ lrslibdir = joinpath(lrsprefixdir, "lib")
 
 targetdirs = AbstractString["liblrsgmp.$(Libdl.dlext)"]
 
-provides(BuildProcess,
-	(@build_steps begin
-		GetSources(liblrs)
-		CreateDirectory(lrsprefixdir)
-		CreateDirectory(lrslibdir)
-		@build_steps begin
-			ChangeDirectory(lrssrcdir)
-			FileRule(joinpath(lrslibdir,"liblrsgmp.$(Libdl.dlext)"),@build_steps begin
-				`make all-shared`
-				`cp liblrsgmp.$(Libdl.dlext) $lrslibdir/liblrsgmp.$(Libdl.dlext)`
-			end)
-		end
-	end),liblrs)
+@static if is_apple()
+	using Homebrew
+	Homebrew.add("gmp")
+	homebrew_includedir = joinpath(Homebrew.brew_prefix, "include")
+	homebrew_libdir = joinpath(Homebrew.brew_prefix, "lib")
+	patchdir = BinDeps.depsdir(liblrs)
+	provides(BuildProcess,
+		(@build_steps begin
+			GetSources(liblrs)
+			CreateDirectory(lrsprefixdir)
+			CreateDirectory(lrslibdir)
+			@build_steps begin
+				ChangeDirectory(lrssrcdir)
+				FileRule(joinpath(lrslibdir,"liblrsgmp.$(Libdl.dlext)"),@build_steps begin
+					pipeline(`cat $patchdir/makefile.osx.patch`, `patch`)
+					`make all-shared SONAME=liblrsgmp.$(Libdl.dlext).0 SHLIB=liblrsgmp.$(Libdl.dlext).0 SHLINK=liblrsgmp.$(Libdl.dlext) INCLUDEDIR=$homebrew_includedir LIBDIR=$homebrew_libdir`
+					`cp liblrsgmp.$(Libdl.dlext) $lrslibdir/liblrsgmp.$(Libdl.dlext)`
+				end)
+			end
+		end),liblrs)
+else
+	provides(BuildProcess,
+		(@build_steps begin
+			GetSources(liblrs)
+			CreateDirectory(lrsprefixdir)
+			CreateDirectory(lrslibdir)
+			@build_steps begin
+				ChangeDirectory(lrssrcdir)
+				FileRule(joinpath(lrslibdir,"liblrsgmp.$(Libdl.dlext)"),@build_steps begin
+					`make all-shared`
+					`cp liblrsgmp.$(Libdl.dlext) $lrslibdir/liblrsgmp.$(Libdl.dlext)`
+				end)
+			end
+		end),liblrs)
+end
 
 @BinDeps.install Dict(:liblrs => :liblrs)
