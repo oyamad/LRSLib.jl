@@ -1,9 +1,11 @@
 export enumtomat, generatorproducer
-function generatorproducer(m::LRSMatrix)
+function generatorproducer{N}(m::LRSMatrix{N})
   # code from here is borrowed from lrs_main
   if !(m.status in [:AtNoBasis, :AtFirstBasis, :Empty])
     error("I am not at first basis")
   end
+
+  @show M = Matrix{Rational{BigInt}}(0, N+1)
 
   # Pivot to a starting dictionary
   if m.status == :AtNoBasis
@@ -12,7 +14,8 @@ function generatorproducer(m::LRSMatrix)
   if !isnull(m.lin) # FIXME should I do that if m.status is :Empty ?
     L = getmat(get(m.lin))
     for i in 1:size(L, 1)
-      produce(L[i, :])
+      #produce(L[i, :])
+      M = [M; L[i, :]']
     end
   end
 
@@ -24,23 +27,28 @@ function generatorproducer(m::LRSMatrix)
 
     while true
       for col in 0:getd(m)
-        output = getsolution(m, col)
+        @show output = getsolution(m, col)
         if output !== nothing
-          produce(output)
+          #produce(output)
+          #@show M = [M; output']
+          @show output'
         end
       end
-      if !getnextbasis(m)
+      @show flag = getnextbasis(m)
+      if !flag
         break
       end
     end
   end
+  return M
 end
 function enumtomat{N}(m::LRSMatrix{N})
-  M = Matrix{Rational{BigInt}}(0, N+1)
-  for output in Task(() -> generatorproducer(m))
-    M = [M; output']
-  end
-  M
+  #M = Matrix{Rational{BigInt}}(0, N+1)
+  #for output in Task(() -> generatorproducer(m))
+  #  M = [M; output']
+  #end
+  #M
+  return generatorproducer(m)
 end
 
 function Base.convert{N}(::Type{LiftedHRepresentation{N, Rational{BigInt}}}, m::LRSGeneratorMatrix{N})
