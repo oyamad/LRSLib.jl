@@ -37,9 +37,11 @@ function generatorproducer(m::LRSMatrix)
 end
 function enumtomat{N}(m::LRSMatrix{N})
   M = Matrix{Rational{BigInt}}(0, N+1)
+  previous_state = gc_enable(false)
   for output in Task(() -> generatorproducer(m))
     M = [M; output']
   end
+  gc_enable(previous_state)
   M
 end
 
