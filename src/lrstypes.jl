@@ -15,7 +15,7 @@ typealias Clrs_mp_matrix Ptr{Ptr{Clrs_mp}}
 bitstype 800 Clrs_fname
 
 function extractbigintat(array::Clrs_mp_vector, i::Int)
-    tmp = BigInt(0)
+    tmp = BigInt()
     ccall((:__gmpz_set, :libgmp), Void, (Ptr{BigInt}, Ptr{BigInt}), pointer_from_objref(tmp), array + (i-1) * sizeof(GMPInteger))
     tmp
 end
