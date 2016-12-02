@@ -37,8 +37,8 @@ type Clrs_dic  # dynamic dictionary data
     Row::Ptr{Clong}    # row location indices
     C::Ptr{Clong}      # cobasis location indices
     Col::Ptr{Clong}    # column location indices
-    prev::Clrs_dic
-    next::Clrs_dic # by ref since it is not immutable so it matches the C version
+    prev::Ptr{Clrs_dic}
+    next::Ptr{Clrs_dic}
 end
 
 type Clrs_dat      # global problem data
