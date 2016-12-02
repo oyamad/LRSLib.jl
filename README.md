@@ -12,4 +12,4 @@ As written in the [user guide of lrs](http://cgm.cs.mcgill.ca/~avis/C/lrslib/USE
 I have [forked lrs](https://github.com/blegat/lrslib) to add a few functions to help doing the wrapper.
 These changes are not upstream yet so this version is used instead of the upstream version.
 
-**Important notice**: Mac OS and Windows are not supported yet.
+**Important notice**: Windows is not supported yet.
