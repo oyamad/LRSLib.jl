@@ -20,27 +20,27 @@ forked_repo = "https://github.com/blegat/lrslib/archive/$lrslib_commit.zip"
 
 #GMP
 @linux_only begin
-  const has_apt = try success(`apt-get -v`) catch e false end
-  const has_yum = try success(`yum --version`) catch e false end
-  const has_pacman = try success(`pacman -Qq`) catch e false end
-  if has_apt || has_yum
-    if has_apt
-      pkgname = "libgmp-dev"
-      pkgman = "apt-get"
-    else
-      pkgname = "libgmp-devel or gmp-devel"
-      pkgman = "yum"
-    end
+    const has_apt = try success(`apt-get -v`) catch e false end
+    const has_yum = try success(`yum --version`) catch e false end
+    const has_pacman = try success(`pacman -Qq`) catch e false end
+    if has_apt || has_yum
+        if has_apt
+            pkgname = "libgmp-dev"
+            pkgman = "apt-get"
+        else
+            pkgname = "libgmp-devel or gmp-devel"
+            pkgman = "yum"
+        end
 
-    println("Warning: The compilation of LRS requires the header gmp.h provided by the package $pkgname.")
-    println("If the compilation fails, please install it as follows:")
-    println("\$ sudo $pkgman install $pkgname")
-  end
+        println("Warning: The compilation of LRS requires the header gmp.h provided by the package $pkgname.")
+        println("If the compilation fails, please install it as follows:")
+        println("\$ sudo $pkgman install $pkgname")
+    end
 end
 
 #LRS
 provides(Sources,
-        Dict(URI(forked_repo) => liblrs), unpacked_dir="$lrsname")
+         Dict(URI(forked_repo) => liblrs), unpacked_dir="$lrsname")
 
 lrssrcdir = joinpath(BinDeps.srcdir(liblrs), lrsname)
 lrsprefixdir = joinpath(BinDeps.usrdir(liblrs))
@@ -49,17 +49,17 @@ lrslibdir = joinpath(lrsprefixdir, "lib")
 targetdirs = AbstractString["liblrsgmp.$(Libdl.dlext)"]
 
 provides(BuildProcess,
-	(@build_steps begin
-		GetSources(liblrs)
-		CreateDirectory(lrsprefixdir)
-		CreateDirectory(lrslibdir)
-		@build_steps begin
-			ChangeDirectory(lrssrcdir)
-			FileRule(joinpath(lrslibdir,"liblrsgmp.$(Libdl.dlext)"),@build_steps begin
-				`make all-shared`
-				`cp liblrsgmp.$(Libdl.dlext) $lrslibdir/liblrsgmp.$(Libdl.dlext)`
-			end)
-		end
-	end),liblrs)
+         (@build_steps begin
+          GetSources(liblrs)
+          CreateDirectory(lrsprefixdir)
+          CreateDirectory(lrslibdir)
+          @build_steps begin
+          ChangeDirectory(lrssrcdir)
+          FileRule(joinpath(lrslibdir,"liblrsgmp.$(Libdl.dlext)"),@build_steps begin
+                   `make all-shared`
+                   `cp liblrsgmp.$(Libdl.dlext) $lrslibdir/liblrsgmp.$(Libdl.dlext)`
+                   end)
+          end
+         end),liblrs)
 
 @BinDeps.install Dict(:liblrs => :liblrs)
