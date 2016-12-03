@@ -136,13 +136,13 @@ end
 function hrepiscomputed(p::LRSPolyhedron)
     !isnull(p.ine)
 end
-function gethrep(p::LRSPolyhedron)
+function hrep(p::LRSPolyhedron)
     copy(getine(p))
 end
 function vrepiscomputed(p::LRSPolyhedron)
     !isnull(p.ext)
 end
-function getvrep(p::LRSPolyhedron)
+function vrep(p::LRSPolyhedron)
     copy(getext(p))
 end
 #eliminate(p::Polyhedron, delset::IntSet)                     = error("not implemented")
@@ -209,14 +209,14 @@ function Polyhedra.loadpolyhedron!(p::LRSPolyhedron, filename::AbstractString, :
     p.extm = LRSGeneratorMatrix(string(filename, ".ext"))
 end
 
-for f in [:nhreps, :starthrep, :nineqs, :startineq, :neqs, :starteq]
+for f in [:hashreps, :nhreps, :starthrep, :hasineqs, :nineqs, :startineq, :haseqs, :neqs, :starteq]
     @eval $f(p::LRSPolyhedron) = $f(getine(p))
 end
 for f in [:donehrep, :nexthrep, :doneineq, :nextineq, :doneeq, :nexteq]
     @eval $f(p::LRSPolyhedron, state) = $f(getine(p), state)
 end
 
-for f in [:nvreps, :startvrep, :npoints, :startpoint, :nrays, :startray]
+for f in [:hasvreps, :nvreps, :startvrep, :haspoints, :npoints, :startpoint, :hasrays, :nrays, :startray]
     @eval $f(p::LRSPolyhedron) = $f(getext(p))
 end
 for f in [:donevrep, :nextvrep, :donepoint, :nextpoint, :doneray, :nextray]
