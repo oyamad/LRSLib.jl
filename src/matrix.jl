@@ -163,7 +163,7 @@ function LRSInequalityMatrix(filename::AbstractString)
 end
 LRSInequalityMatrix{N}(rep::HRep{N}) = LRSInequalityMatrix{N}(rep)
 
-copy{N}(ine::LRSInequalityMatrix{N}) = LRSInequalityMatrix{N}(hrep(ine))
+copy{N}(ine::LRSInequalityMatrix{N}) = LRSInequalityMatrix{N}(hreps(ine))
 
 function (::Type{LRSInequalityMatrix{N}}){N}(it::HRepIterator{N, Rational{BigInt}})
     P, Q = initmatrix(true, it)
@@ -190,7 +190,7 @@ function LRSGeneratorMatrix(filename::AbstractString)
 end
 LRSGeneratorMatrix{N}(rep::VRep{N}) = LRSGeneratorMatrix{N}(rep)
 
-copy{N}(ext::LRSGeneratorMatrix{N}) = LRSGeneratorMatrix{N}(vrep(ext))
+copy{N}(ext::LRSGeneratorMatrix{N}) = LRSGeneratorMatrix{N}(vreps(ext))
 
 function (::Type{LRSGeneratorMatrix{N}}){N}(it::VRepIterator{N, Rational{BigInt}})
     P, Q = initmatrix(false, it)
