@@ -1,10 +1,8 @@
 using LRSLib
-using FactCheck
-
 using Polyhedra
+using Base.Test
+
 include("cube.jl")
 include("simplex.jl")
 
 include("polyhedron.jl")
-
-FactCheck.exitstatus()
