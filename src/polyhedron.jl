@@ -41,6 +41,7 @@ function getine(p::LRSPolyhedron)
             p.ine = p.inem
         else
             p.ine = LiftedHRepresentation(getextm(p, :Fresh))
+            p.inem = nothing
             p.hlinearitydetected = true
             p.noredundantinequality = true
         end
@@ -59,6 +60,7 @@ function getext(p::LRSPolyhedron)
             p.ext = p.extm
         else
             p.ext = LiftedVRepresentation(getinem(p, :Fresh))
+            p.extm = nothing
             p.vlinearitydetected = true
             p.noredundantgenerator = true
         end
@@ -95,7 +97,7 @@ end
 # Implementation of Polyhedron's mandatory interface
 polyhedron{N}(repit::Union{Representation{N},HRepIterator{N},VRepIterator{N}}, ::LRSLibrary) = LRSPolyhedron{N}(repit)
 
-getlibraryfor{T<:Union{Int,Rational}}(p::LRSPolyhedron, ::Type{T}) = LRSLibrary()
+getlibraryfor{T<:Union{Integer,Rational}}(p::LRSPolyhedron, ::Type{T}) = LRSLibrary()
 
 (::Type{LRSPolyhedron{N}}){N, T}(it::HRepIterator{N,T}) = LRSPolyhedron{N}(LRSInequalityMatrix{N}(it))
 (::Type{LRSPolyhedron{N}}){N, T}(it::VRepIterator{N,T}) = LRSPolyhedron{N}(LRSGeneratorMatrix{N}(it))
