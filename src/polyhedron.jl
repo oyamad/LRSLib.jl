@@ -97,7 +97,7 @@ end
 # Implementation of Polyhedron's mandatory interface
 polyhedron{N}(repit::Union{Representation{N},HRepIterator{N},VRepIterator{N}}, ::LRSLibrary) = LRSPolyhedron{N}(repit)
 
-getlibraryfor{T<:Union{Integer,Rational}}(p::LRSPolyhedron, ::Type{T}) = LRSLibrary()
+getlibraryfor{T<:Union{Integer,Rational}}(p::LRSPolyhedron, n::Int, ::Type{T}) = LRSLibrary()
 
 (::Type{LRSPolyhedron{N}}){N, T}(it::HRepIterator{N,T}) = LRSPolyhedron{N}(LRSInequalityMatrix{N}(it))
 (::Type{LRSPolyhedron{N}}){N, T}(it::VRepIterator{N,T}) = LRSPolyhedron{N}(LRSGeneratorMatrix{N}(it))
