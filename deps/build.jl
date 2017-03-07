@@ -2,7 +2,7 @@ using BinDeps
 
 @BinDeps.setup
 
-lrslib_commit = "2b35cc36c39d1ebca35dbc21a75a35864f0c07b1"
+lrslib_commit = "89bf29524143836a298e3f7f513e8b96d6356031"
 #lrsname = "lrslib-061"
 lrsname = "lrslib-$lrslib_commit"
 

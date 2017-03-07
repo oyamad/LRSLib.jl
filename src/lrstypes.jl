@@ -106,6 +106,7 @@ type Clrs_dat      # global problem data
     #*** flags  **********
     allbases::Clong    # TRUE if all bases should be printed
     bound::Clong                 # TRUE if upper/lower bound on objective given
+    countonly::Clong             # TRUE if only count totals should be output
     debug::Clong
     dualdeg::Clong    # TRUE if start dictionary is dual degenerate
     etrace::Clong    # turn off debug at basis # strace
