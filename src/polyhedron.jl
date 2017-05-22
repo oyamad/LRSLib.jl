@@ -16,6 +16,12 @@ type LRSPolyhedron{N} <: Polyhedron{N, Rational{BigInt}}
     function LRSPolyhedron(ine::HRepresentation{N, Rational{BigInt}}, ext::VRepresentation{N, Rational{BigInt}}, hld::Bool, vld::Bool, nri::Bool, nrg::Bool)
         new(ine, nothing, ext, nothing, hld, vld, nri, nrg)
     end
+    function LRSPolyhedron(ine::HRepresentation{N, Rational{BigInt}}, ::Void, hld::Bool, vld::Bool, nri::Bool, nrg::Bool)
+        new(ine, nothing, nothing, nothing, hld, vld, nri, nrg)
+    end
+    function LRSPolyhedron(::Void, ext::VRepresentation{N, Rational{BigInt}}, hld::Bool, vld::Bool, nri::Bool, nrg::Bool)
+        new(nothing, nothing, ext, nothing, hld, vld, nri, nrg)
+    end
     function LRSPolyhedron(ine::HRepresentation{N, Rational{BigInt}})
         new(ine, nothing, nothing, nothing, false, false, false, false)
     end
