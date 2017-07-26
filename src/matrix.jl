@@ -182,6 +182,26 @@ starthrep(ine::LRSInequalityMatrix) = 1
 donehrep(ine::LRSInequalityMatrix, state) = state > length(ine)
 nexthrep(ine::LRSInequalityMatrix, state) = (extractrow(ine, state), state+1)
 
+function nextnz(Q, i, n)
+    while i <= n && !isininputlinset(Q, i)
+        i += 1
+    end
+    i
+end
+starteq(ine::LRSInequalityMatrix) = nextnz(unsafe_load(ine.Q), 1, length(ine))
+doneeq(ine::LRSInequalityMatrix, state) = state > length(ine)
+nexteq(ine::LRSInequalityMatrix, state) = (extractrow(ine, state), nextnz(unsafe_load(ine.Q), state+1, length(ine)))
+
+function nextz(Q, i, n)
+  while i <= n && isininputlinset(Q, i)
+    i += 1
+  end
+  i
+end
+startineq(ine::LRSInequalityMatrix) = nextz(unsafe_load(ine.Q), 1, length(ine))
+doneineq(ine::LRSInequalityMatrix, state) = state > length(ine)
+nextineq(ine::LRSInequalityMatrix, state) = (extractrow(ine, state), nextz(unsafe_load(ine.Q), state+1, length(ine)))
+
 # V-representation
 
 function LRSGeneratorMatrix(filename::AbstractString)
@@ -205,10 +225,33 @@ function (::Type{LRSGeneratorMatrix{N}}){N}(; rays=nothing, points=nothing)
 end
 
 nvreps(ext::LRSGeneratorMatrix) = length(ext)
+npoints(matrix::LRSGeneratorMatrix) = count(i -> isrowpoint(matrix, i), 1:length(matrix))
+nrays(matrix::LRSGeneratorMatrix) = length(matrix) - npoints(matrix)
 
 startvrep(ext::LRSGeneratorMatrix) = 1
 donevrep(ext::LRSGeneratorMatrix, state) = state > length(ext)
 nextvrep(ext::LRSGeneratorMatrix, state) = (extractrow(ext, state), state+1)
+
+function nextrayidx(ext::LRSGeneratorMatrix, i, n)
+    while i <= n && isrowpoint(ext, i)
+        i += 1
+    end
+    i
+end
+function nextpointidx(ext::LRSGeneratorMatrix, i, n)
+    while i <= n && !isrowpoint(ext, i)
+        i += 1
+    end
+    i
+end
+
+startray(ext::LRSGeneratorMatrix) = nextrayidx(ext, 1, length(ext))
+doneray(ext::LRSGeneratorMatrix, state) = state > length(ext)
+nextray(ext::LRSGeneratorMatrix, state) = (extractrow(ext, state), nextrayidx(ext, state+1, length(ext)))
+
+startpoint(ext::LRSGeneratorMatrix) = nextpointidx(ext, 1, length(ext))
+donepoint(ext::LRSGeneratorMatrix, state) = state > length(ext)
+nextpoint(ext::LRSGeneratorMatrix, state) = (extractrow(ext, state), nextpointidx(ext, state+1, length(ext)))
 
 #I should also remove linearity (should I remove one if hull && homogeneous ?)
 #getd{N}(m::LRSInequalityMatrix{N}) = N
@@ -225,6 +268,16 @@ end
 
 function setdebug(m::LRSMatrix, debug::Bool)
     @lrs_ccall setdebug Void (Ptr{Clrs_dat}, Clong) m.Q (debug ? Clrs_true : Clrs_false)
+end
+
+function isrowpoint(P::Clrs_dic, Q::Clrs_dat, i, offset)
+    row = unsafe_load(P.A, 1+i)
+    !iszero(extractbigintat(row, offset+1))
+end
+function isrowpoint(matrix::LRSGeneratorMatrix, i::Int)
+    P = unsafe_load(matrix.P)
+    Q = unsafe_load(matrix.Q)
+    isrowpoint(P, Q, i, 1)
 end
 
 function extractrow(P::Clrs_dic, Q::Clrs_dat, N, i, offset)
