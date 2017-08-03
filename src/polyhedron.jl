@@ -115,21 +115,6 @@ end
 function (::Type{LRSPolyhedron{N}}){N}(points::PointIterator, rays::RayIterator)
     LRSPolyhedron{N}(LRSGeneratorMatrix{N}(points, rays))
 end
-function (::Type{LRSPolyhedron{N}}){N}(; eqs=nothing, ineqs=nothing, points=nothing, rays=nothing)
-    noth = eqs === nothing && ineqs === nothing
-    notv = points === nothing && rays === nothing
-    if noth && notv
-        error("LRSPolyhedron should have at least one iterator to be built")
-    end
-    if !noth && !notv
-        error("LRSPolyhedron constructed with a combination of eqs/ineqs with points/rays")
-    end
-    if notv
-        LRSPolyhedron{N}(eqs, ineqs)
-    else
-        LRSPolyhedron{N}(points, rays)
-    end
-end
 
 function Base.copy{N}(p::LRSPolyhedron{N})
     ine = nothing
@@ -146,7 +131,7 @@ function Base.push!{N}(p::LRSPolyhedron{N}, ine::HRepresentation{N})
     updateine!(p, intersect(getine(p), changeeltype(ine, Rational{BigInt})))
 end
 function Base.push!{N}(p::LRSPolyhedron{N}, ext::VRepresentation{N})
-    updateext!(p, getext(p) + changeeltype(ext, Rational{BigInt}))
+    updateext!(p, convexhull(getext(p), changeeltype(ext, Rational{BigInt})))
 end
 function hrepiscomputed(p::LRSPolyhedron)
     !isnull(p.ine)

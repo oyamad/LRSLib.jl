@@ -169,8 +169,8 @@ function (::Type{LRSInequalityMatrix{N}}){N}(it::HRepIterator{N, Rational{BigInt
     P, Q = initmatrix(true, it)
     LRSInequalityMatrix{N}(P, Q)
 end
-function (::Type{LRSInequalityMatrix{N}}){N}(; eqs=nothing, ineqs=nothing)
-    P, Q = initmatrix(true, eqs, ineqs)
+function (::Type{LRSInequalityMatrix{N}}){N}(hps, hss)
+    P, Q = initmatrix(true, hps, hss)
     LRSInequalityMatrix{N}(P, Q)
 end
 
@@ -219,9 +219,6 @@ end
 function (::Type{LRSGeneratorMatrix{N}}){N}(points, rays)
     P, Q = initmatrix(false, rays, points)
     LRSGeneratorMatrix{N}(P, Q)
-end
-function (::Type{LRSGeneratorMatrix{N}}){N}(; rays=nothing, points=nothing)
-    LRSGeneratorMatrix{N}(points, rays)
 end
 
 nvreps(ext::LRSGeneratorMatrix) = length(ext)
