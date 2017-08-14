@@ -1,9 +1,9 @@
 export LRSLibrary
 
-type LRSLibrary <: PolyhedraLibrary
+mutable struct LRSLibrary <: PolyhedraLibrary
 end
 
-type LRSPolyhedron{N} <: Polyhedron{N, Rational{BigInt}}
+mutable struct LRSPolyhedron{N} <: Polyhedron{N, Rational{BigInt}}
     ine::Nullable{HRepresentation{N, Rational{BigInt}}}
     inem::Nullable{LRSInequalityMatrix{N}}
     ext::Nullable{VRepresentation{N, Rational{BigInt}}}
@@ -34,8 +34,8 @@ end
 # saying false normally do not give troubles
 decomposedhfast{N}(::Type{LRSPolyhedron{N}}) = false
 decomposedvfast{N}(::Type{LRSPolyhedron{N}}) = false
-decomposedhfast{N}(p::LRSPolyhedron{N}) = decomposedhfast(LRSPolyhedron{N})
-decomposedvfast{N}(p::LRSPolyhedron{N}) = decomposedvfast(LRSPolyhedron{N})
+decomposedhfast(p::LRSPolyhedron{N}) where {N} = decomposedhfast(LRSPolyhedron{N})
+decomposedvfast(p::LRSPolyhedron{N}) where {N} = decomposedvfast(LRSPolyhedron{N})
 
 eltype{N}(::Type{LRSPolyhedron{N}}) = Rational{BigInt}
 eltype(::LRSPolyhedron) = Rational{BigInt}
@@ -90,33 +90,33 @@ function clearfield!(p::LRSPolyhedron)
     noredundantinequality = false
     noredundantgenerator = false
 end
-function updateine!{N}(p::LRSPolyhedron{N}, ine::HRepresentation{N, Rational{BigInt}})
+function updateine!(p::LRSPolyhedron{N}, ine::HRepresentation{N, Rational{BigInt}}) where N
     clearfield!(p)
     p.ine = ine
 end
-function updateext!{N}(p::LRSPolyhedron{N}, ext::VRepresentation{N, Rational{BigInt}})
+function updateext!(p::LRSPolyhedron{N}, ext::VRepresentation{N, Rational{BigInt}}) where N
     clearfield!(p)
     p.ext = ext
 end
 
 
 # Implementation of Polyhedron's mandatory interface
-polyhedron{N}(repit::Union{Representation{N},HRepIterator{N},VRepIterator{N}}, ::LRSLibrary) = LRSPolyhedron{N}(repit)
+polyhedron(repit::Union{Representation{N},HRepIterator{N},VRepIterator{N}}, ::LRSLibrary) where {N} = LRSPolyhedron{N}(repit)
 
-getlibraryfor{T<:Union{Integer,Rational}}(p::LRSPolyhedron, n::Int, ::Type{T}) = LRSLibrary()
+getlibraryfor(p::LRSPolyhedron, n::Int, ::Type{T}) where {T<:Union{Integer,Rational}} = LRSLibrary()
 Polyhedra.changefulldim{N}(::Type{LRSPolyhedron{N}}, n::Int)= LRSPolyhedron{n}
 
-(::Type{LRSPolyhedron{N}}){N, T}(it::HRepIterator{N,T}) = LRSPolyhedron{N}(LRSInequalityMatrix{N}(it))
-(::Type{LRSPolyhedron{N}}){N, T}(it::VRepIterator{N,T}) = LRSPolyhedron{N}(LRSGeneratorMatrix{N}(it))
+LRSPolyhedron{N}(it::HRepIterator{N,T}) where {N, T} = LRSPolyhedron{N}(LRSInequalityMatrix{N}(it))
+LRSPolyhedron{N}(it::VRepIterator{N,T}) where {N, T} = LRSPolyhedron{N}(LRSGeneratorMatrix{N}(it))
 
-function (::Type{LRSPolyhedron{N}}){N}(eqs::EqIterator, ineqs::IneqIterator)
+function LRSPolyhedron{N}(eqs::EqIterator, ineqs::IneqIterator) where N
     LRSPolyhedron{N}(LRSInequalityMatrix{N}(eqs, ineqs))
 end
-function (::Type{LRSPolyhedron{N}}){N}(points::PointIterator, rays::RayIterator)
+function LRSPolyhedron{N}(points::PointIterator, rays::RayIterator) where N
     LRSPolyhedron{N}(LRSGeneratorMatrix{N}(points, rays))
 end
 
-function Base.copy{N}(p::LRSPolyhedron{N})
+function Base.copy(p::LRSPolyhedron{N}) where N
     ine = nothing
     if !isnull(p.ine)
         ine = copy(get(p.ine))
@@ -127,10 +127,10 @@ function Base.copy{N}(p::LRSPolyhedron{N})
     end
     LRSPolyhedron{N}(ine, ext, p.hlinearitydetected, p.vlinearitydetected, p.noredundantinequality, p.noredundantgenerator)
 end
-function Base.push!{N}(p::LRSPolyhedron{N}, ine::HRepresentation{N})
+function Base.push!(p::LRSPolyhedron{N}, ine::HRepresentation{N}) where N
     updateine!(p, intersect(getine(p), changeeltype(ine, Rational{BigInt})))
 end
-function Base.push!{N}(p::LRSPolyhedron{N}, ext::VRepresentation{N})
+function Base.push!(p::LRSPolyhedron{N}, ext::VRepresentation{N}) where N
     updateext!(p, convexhull(getext(p), changeeltype(ext, Rational{BigInt})))
 end
 function hrepiscomputed(p::LRSPolyhedron)
