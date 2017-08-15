@@ -79,7 +79,7 @@ end
 
 # Representation
 
-type LRSLinearitySpace{N}
+mutable struct LRSLinearitySpace{N}
     Lin::Clrs_mp_matrix
     nlin::Int
     n::Int
@@ -93,7 +93,7 @@ type LRSLinearitySpace{N}
     end
 end
 
-type LRSInequalityMatrix{N} <: HRepresentation{N, Rational{BigInt}}
+mutable struct LRSInequalityMatrix{N} <: HRepresentation{N, Rational{BigInt}}
     P::Ptr{Clrs_dic}
     Q::Ptr{Clrs_dat}
     status::Symbol
@@ -109,7 +109,7 @@ decomposedfast(ine::LRSInequalityMatrix) = false
 eltype{N}(::Type{LRSInequalityMatrix{N}}) = Rational{BigInt}
 eltype(::LRSInequalityMatrix) = Rational{BigInt}
 
-type LRSGeneratorMatrix{N} <: VRepresentation{N, Rational{BigInt}}
+mutable struct LRSGeneratorMatrix{N} <: VRepresentation{N, Rational{BigInt}}
     P::Ptr{Clrs_dic}
     Q::Ptr{Clrs_dat}
     status::Symbol
@@ -161,15 +161,15 @@ function LRSInequalityMatrix(filename::AbstractString)
     P, Q = initmatrix(filename)
     LRSInequalityMatrix{unsafe_load(P).d}(P, Q)
 end
-LRSInequalityMatrix{N}(rep::HRep{N}) = LRSInequalityMatrix{N}(rep)
+LRSInequalityMatrix(rep::HRep{N}) where {N} = LRSInequalityMatrix{N}(rep)
 
-copy{N}(ine::LRSInequalityMatrix{N}) = LRSInequalityMatrix{N}(hreps(ine))
+copy(ine::LRSInequalityMatrix{N}) where {N} = LRSInequalityMatrix{N}(hreps(ine))
 
-function (::Type{LRSInequalityMatrix{N}}){N}(it::HRepIterator{N, Rational{BigInt}})
+function LRSInequalityMatrix{N}(it::HRepIterator{N, Rational{BigInt}}) where N
     P, Q = initmatrix(true, it)
     LRSInequalityMatrix{N}(P, Q)
 end
-function (::Type{LRSInequalityMatrix{N}}){N}(hps, hss)
+function LRSInequalityMatrix{N}(hps, hss) where N
     P, Q = initmatrix(true, hps, hss)
     LRSInequalityMatrix{N}(P, Q)
 end
@@ -208,15 +208,15 @@ function LRSGeneratorMatrix(filename::AbstractString)
     d, P, Q = initmatrix(filename)
     LRSGeneratorMatrix{unsafe_load(P).d-1}(P, Q)
 end
-LRSGeneratorMatrix{N}(rep::VRep{N}) = LRSGeneratorMatrix{N}(rep)
+LRSGeneratorMatrix(rep::VRep{N}) where {N} = LRSGeneratorMatrix{N}(rep)
 
-copy{N}(ext::LRSGeneratorMatrix{N}) = LRSGeneratorMatrix{N}(vreps(ext))
+copy(ext::LRSGeneratorMatrix{N}) where {N} = LRSGeneratorMatrix{N}(vreps(ext))
 
-function (::Type{LRSGeneratorMatrix{N}}){N}(it::VRepIterator{N, Rational{BigInt}})
+function LRSGeneratorMatrix{N}(it::VRepIterator{N, Rational{BigInt}}) where N
     P, Q = initmatrix(false, it)
     LRSGeneratorMatrix{N}(P, Q)
 end
-function (::Type{LRSGeneratorMatrix{N}}){N}(points, rays)
+function LRSGeneratorMatrix{N}(points, rays) where N
     P, Q = initmatrix(false, rays, points)
     LRSGeneratorMatrix{N}(P, Q)
 end
@@ -254,8 +254,8 @@ nextpoint(ext::LRSGeneratorMatrix, state) = (extractrow(ext, state), nextpointid
 #getd{N}(m::LRSInequalityMatrix{N}) = N
 #getd{N}(m::LRSGeneratorMatrix{N}) = N+1
 #Let's do it the easy way
-getd{N}(m::LRSInequalityMatrix{N}) = unsafe_load(m.P).d
-getd{N}(m::LRSGeneratorMatrix{N}) = unsafe_load(m.P).d
+getd(m::LRSInequalityMatrix{N}) where {N} = unsafe_load(m.P).d
+getd(m::LRSGeneratorMatrix{N}) where {N} = unsafe_load(m.P).d
 
 function setrow(P::Ptr{Clrs_dic}, Q::Ptr{Clrs_dat}, i::Int, row::Vector{Rational{BigInt}}, ineq::Bool)
     num = map(x -> GMPInteger(x.num.alloc, x.num.size, x.num.d), row)
@@ -296,7 +296,7 @@ function warn_fresh(m::LRSMatrix)
     end
 end
 
-function extractrow{N}(matrix::LRSInequalityMatrix{N}, i::Int)
+function extractrow(matrix::LRSInequalityMatrix{N}, i::Int) where N
     P = unsafe_load(matrix.P)
     Q = unsafe_load(matrix.Q)
     b = extractrow(P, Q, N, i, 0)
@@ -309,7 +309,7 @@ function extractrow{N}(matrix::LRSInequalityMatrix{N}, i::Int)
     end
 end
 
-function extractrow{N}(matrix::LRSGeneratorMatrix{N}, i::Int)
+function extractrow(matrix::LRSGeneratorMatrix{N}, i::Int) where N
     P = unsafe_load(matrix.P)
     Q = unsafe_load(matrix.Q)
     #d = Q.n-offset-1 # FIXME when it is modified...
@@ -387,7 +387,7 @@ function convertoutput(x::Clrs_mp_vector, n, hull)
     end
 end
 
-function getmat{N}(lin::LRSLinearitySpace{N})
+function getmat(lin::LRSLinearitySpace{N}) where N
     startcol = lin.hull && lin.homogeneous ? 2 : 1 # col zero not treated as redundant
     A = Matrix{BigInt}(lin.nlin-startcol+1, lin.n)
     for col in startcol:lin.nlin # print linearity space */
@@ -396,7 +396,7 @@ function getmat{N}(lin::LRSLinearitySpace{N})
     A
 end
 
-function getfirstbasis{N}(m::LRSMatrix{N})
+function getfirstbasis(m::LRSMatrix{N}) where N
     Lin = Ref{Clrs_mp_matrix}(C_NULL)
     Pptr = Ref{Ptr{Clrs_dic}}(m.P)
     # The "Clrs_true" at the last argument since that it should not be verbose

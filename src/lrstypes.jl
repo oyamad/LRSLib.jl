@@ -1,6 +1,6 @@
 # It is immutable so that it is stored by value in the structures
 # Clrs_dic and Clrs_dat and not by reference
-immutable GMPInteger
+struct GMPInteger
     alloc::Cint
     size::Cint
     data::Ptr{UInt32}
@@ -20,7 +20,7 @@ function extractbigintat(array::Clrs_mp_vector, i::Int)
     tmp
 end
 
-type Clrs_dic  # dynamic dictionary data
+mutable struct Clrs_dic  # dynamic dictionary data
     A::Clrs_mp_matrix
     m::Clong           # A has m+1 rows, row 0 is cost row
     m_A::Clong         # =m or m-d if nonnegative flag set
@@ -41,7 +41,7 @@ type Clrs_dic  # dynamic dictionary data
     next::Ptr{Clrs_dic}
 end
 
-type Clrs_dat      # global problem data
+mutable struct Clrs_dat      # global problem data
     Gcd::Clrs_mp_vector     # Gcd of each row of numerators
     Lcm::Clrs_mp_vector     # Lcm for each row of input denominators
 

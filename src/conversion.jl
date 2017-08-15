@@ -37,7 +37,7 @@ function generatorproducer(m::LRSMatrix)
         end
     end
 end
-function enumtomat{N}(m::LRSMatrix{N})
+function enumtomat(m::LRSMatrix{N}) where N
     M = Matrix{Rational{BigInt}}(0, N+1)
     for output in generatorproducer(m)
         M = [M; output']
@@ -50,16 +50,16 @@ function Base.convert{N}(::Type{LiftedHRepresentation{N, Rational{BigInt}}}, m::
     A = enumtomat(m)
     LiftedHRepresentation{N, Rational{BigInt}}(A, linset)
 end
-HRepresentation{N}(m::LRSGeneratorMatrix{N}) = Base.convert(LiftedHRepresentation{N, Rational{BigInt}}, m)
-LiftedHRepresentation{N}(m::LRSGeneratorMatrix{N}) = Base.convert(LiftedHRepresentation{N, Rational{BigInt}}, m)
+HRepresentation(m::LRSGeneratorMatrix{N}) where {N} = Base.convert(LiftedHRepresentation{N, Rational{BigInt}}, m)
+LiftedHRepresentation(m::LRSGeneratorMatrix{N}) where {N} = Base.convert(LiftedHRepresentation{N, Rational{BigInt}}, m)
 
 function Base.convert{N}(::Type{LiftedVRepresentation{N, Rational{BigInt}}}, m::LRSInequalityMatrix{N})
     linset = getoutputlinset(m)
     R = enumtomat(m)
     LiftedVRepresentation{N, Rational{BigInt}}(R, linset)
 end
-VRepresentation{N}(m::LRSInequalityMatrix{N}) = Base.convert(LiftedVRepresentation{N, Rational{BigInt}}, m)
-LiftedVRepresentation{N}(m::LRSInequalityMatrix{N}) = Base.convert(LiftedVRepresentation{N, Rational{BigInt}}, m)
+VRepresentation(m::LRSInequalityMatrix{N}) where {N} = Base.convert(LiftedVRepresentation{N, Rational{BigInt}}, m)
+LiftedVRepresentation(m::LRSInequalityMatrix{N}) where {N} = Base.convert(LiftedVRepresentation{N, Rational{BigInt}}, m)
 
 function Base.convert{N}(::Type{LRSInequalityMatrix{N}}, m::LRSGeneratorMatrix{N})
     linset = getoutputlinset(m)
@@ -67,11 +67,11 @@ function Base.convert{N}(::Type{LRSInequalityMatrix{N}}, m::LRSGeneratorMatrix{N
     (P, Q) = initmatrix(M, linset, true)
     LRSInequalityMatrix{N}(P, Q)
 end
-LRSInequalityMatrix{N}(m::LRSGeneratorMatrix{N}) = LRSInequalityMatrix{N}(m)
+LRSInequalityMatrix(m::LRSGeneratorMatrix{N}) where {N} = LRSInequalityMatrix{N}(m)
 function Base.convert{N}(::Type{LRSGeneratorMatrix{N}}, m::LRSInequalityMatrix{N})
     linset = getoutputlinset(m)
     M = enumtomat(m)
     (P, Q) = initmatrix(M, linset, false)
     LRSGeneratorMatrix{N}(P, Q)
 end
-LRSGeneratorMatrix{N}(m::LRSInequalityMatrix{N}) = LRSGeneratorMatrix{N}(m)
+LRSGeneratorMatrix(m::LRSInequalityMatrix{N}) where {N} = LRSGeneratorMatrix{N}(m)
