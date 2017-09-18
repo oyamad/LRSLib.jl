@@ -63,6 +63,7 @@ targetdirs = AbstractString["liblrsgmp.$(Libdl.dlext)"]
               ChangeDirectory(lrssrcdir)
               FileRule(joinpath(lrslibdir,"liblrsgmp.$(Libdl.dlext)"),@build_steps begin
                        pipeline(`cat $patchdir/makefile.osx.patch`, `patch`)
+                       pipeline(`patch -p1`, stdin="../../quiet.diff")
                        `make all-shared SONAME=liblrsgmp.$(Libdl.dlext).0 SHLIB=liblrsgmp.$(Libdl.dlext).0 SHLINK=liblrsgmp.$(Libdl.dlext) INCLUDEDIR=$homebrew_includedir LIBDIR=$homebrew_libdir`
                        `cp liblrsgmp.$(Libdl.dlext) $lrslibdir/liblrsgmp.$(Libdl.dlext)`
                        end)
@@ -77,6 +78,7 @@ else
               @build_steps begin
               ChangeDirectory(lrssrcdir)
               FileRule(joinpath(lrslibdir,"liblrsgmp.$(Libdl.dlext)"),@build_steps begin
+                       pipeline(`patch -p1`, stdin="../../quiet.diff")
                        `make all-shared`
                        `cp liblrsgmp.$(Libdl.dlext) $lrslibdir/liblrsgmp.$(Libdl.dlext)`
                        end)
