@@ -1,7 +1,9 @@
 export LRSLibrary
 
-mutable struct LRSLibrary <: PolyhedraLibrary
+struct LRSLibrary <: PolyhedraLibrary
 end
+Polyhedra.similar_library(::LRSLibrary, ::FullDim, ::Type{T}) where T<:Union{Integer,Rational} = LRSLibrary()
+Polyhedra.similar_library(::LRSLibrary, d::FullDim, ::Type{T}) where T = Polyhedra.default_library(d, T)
 
 mutable struct LRSPolyhedron{N} <: Polyhedron{N, Rational{BigInt}}
     ine::Nullable{HRepresentation{N, Rational{BigInt}}}
@@ -29,11 +31,10 @@ mutable struct LRSPolyhedron{N} <: Polyhedron{N, Rational{BigInt}}
         new{N}(nothing, nothing, ext, nothing, false, false, false, false)
     end
 end
-
-Polyhedra.coefficienttype{N}(::Type{LRSPolyhedron{N}}) = Rational{BigInt}
-Polyhedra.coefficienttype(::LRSPolyhedron) = Rational{BigInt}
-Polyhedra.similar_type(::Type{<:LRSPolyhedron}, ::FullDim{N}, ::Type{Rational{BigInt}}) where N = LRSPolyhedron{N}
+Polyhedra.library(::LRSPolyhedron) = LRSLibrary()
 Polyhedra.arraytype(::Union{LRSPolyhedron, Type{<:LRSPolyhedron}}) = Vector{Rational{BigInt}}
+Polyhedra.similar_type(::Type{<:LRSPolyhedron}, ::FullDim{N}, ::Type{Rational{BigInt}}) where N = LRSPolyhedron{N}
+Polyhedra.similar_type(::Type{<:LRSPolyhedron}, d::FullDim, ::Type{T}) where T = Polyhedra.default_type(d, T)
 
 # Helpers
 function getine(p::LRSPolyhedron)
@@ -97,8 +98,6 @@ end
 
 # Implementation of Polyhedron's mandatory interface
 polyhedron(rep::Representation{N}, ::LRSLibrary) where N = LRSPolyhedron{N}(rep)
-
-getlibraryfor(p::LRSPolyhedron, n::Int, ::Type{T}) where T<:Union{Integer,Rational} = LRSLibrary()
 
 function LRSPolyhedron{N}(hits::Polyhedra.HIt{N}...) where N
     LRSPolyhedron{N}(LRSInequalityMatrix{N}(hits...))
@@ -186,13 +185,13 @@ end
 #function getredundantinequalities(p::LRSPolyhedron)
 #  redund(getinem(p, :AlmostFresh))
 #end
-function ishredundant(p::LRSPolyhedron, i::Integer; strongly=false, cert=false, solver=Polyhedra.defaultLPsolverfor(p))
+function ishredundant(p::LRSPolyhedron, idx::Polyhedra.HIndex; strongly=false, cert=false, solver=Polyhedra.defaultLPsolverfor(p))
     @assert !strongly && !cert
-    redundi(getinem(p, :AlmostFresh), i) # FIXME does it need to be fresh ?
+    redundi(getinem(p, :AlmostFresh), idx.value) # FIXME does it need to be fresh ?
 end
-function isvredundant(p::LRSPolyhedron, i::Integer; strongly=false, cert=false, solver=Polyhedra.defaultLPsolverfor(p))
+function isvredundant(p::LRSPolyhedron, idx::Polyhedra.VIndex; strongly=false, cert=false, solver=Polyhedra.defaultLPsolverfor(p))
     @assert !strongly && !cert
-    redundi(getextm(p, :AlmostFresh), i) # FIXME does it need to be fresh ?
+    redundi(getextm(p, :AlmostFresh), idx.value) # FIXME does it need to be fresh ?
 end
 # Optional interface
 function Polyhedra.loadpolyhedron!(p::LRSPolyhedron, filename::AbstractString, ::Type{Val{:ext}})
