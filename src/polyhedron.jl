@@ -185,13 +185,11 @@ end
 #function getredundantinequalities(p::LRSPolyhedron)
 #  redund(getinem(p, :AlmostFresh))
 #end
-function ishredundant(p::LRSPolyhedron, idx::Polyhedra.HIndex; strongly=false, cert=false, solver=Polyhedra.defaultLPsolverfor(p))
+_getrepfor(p::LRSPolyhedron, ::Polyhedra.HIndex, status::Symbol) = getinem(p, status)
+_getrepfor(p::LRSPolyhedron, ::Polyhedra.VIndex, status::Symbol) = getextm(p, status)
+function isredundant(p::LRSPolyhedron, idx::Polyhedra.Index; strongly=false, cert=false, solver=Polyhedra.defaultLPsolverfor(p))
     @assert !strongly && !cert
-    redundi(getinem(p, :AlmostFresh), idx.value) # FIXME does it need to be fresh ?
-end
-function isvredundant(p::LRSPolyhedron, idx::Polyhedra.VIndex; strongly=false, cert=false, solver=Polyhedra.defaultLPsolverfor(p))
-    @assert !strongly && !cert
-    redundi(getextm(p, :AlmostFresh), idx.value) # FIXME does it need to be fresh ?
+    redundi(_getrepfor(p, idx, :AlmostFresh), idx.value) # FIXME does it need to be fresh ?
 end
 # Optional interface
 function Polyhedra.loadpolyhedron!(p::LRSPolyhedron, filename::AbstractString, ::Type{Val{:ext}})
