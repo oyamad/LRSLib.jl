@@ -1,5 +1,4 @@
 export LRSMatrix, LRSInequalityMatrix, LRSGeneratorMatrix, setdebug
-import Base.eltype, Base.copy
 
 function lrs_alloc_dat()
     @lrs_ccall alloc_dat Ptr{Clrs_dat} (Ptr{Cchar},) C_NULL
@@ -48,27 +47,24 @@ function initmatrix(M::Matrix{Rational{BigInt}}, linset, Hrep::Bool)
 end
 
 
-function fillmatrix(inequality::Bool, P::Ptr{Clrs_dic}, Q::Ptr{Clrs_dat}, itr1, offset=0)
-    for (i, item) in enumerate(itr1)
+function fillmatrix(inequality::Bool, P::Ptr{Clrs_dic}, Q::Ptr{Clrs_dat}, itr::Polyhedra.ElemIt, offset::Int)
+    for (i, item) in enumerate(itr)
         a = vec(coord(lift(item)))
         setrow(P, Q, offset+i, inequality ? -a : a, !islin(item))
     end
 end
 
-function initmatrix(inequality, itr1, itr2=nothing)
-    n = fulldim(itr1)+1
-    m = length(itr1)
-    if !(itr2 === nothing)
-        m += length(itr2)
-    end
+# If ElemIt contains AbstractVector{T}, we cannot infer FullDim so we add it as argument
+function initmatrix(::Polyhedra.FullDim{N}, inequality::Bool, itr::Polyhedra.ElemIt...) where N
+    n = N+1
+    cs = cumsum(collect(length.(itr))) # cumsum not defined for tuple :(
+    m = cs[end]
+    offset = [0; cs[1:end-1]]
     Q = lrs_alloc_dat()
     @lrs_ccall init_dat Void (Ptr{Clrs_dat}, Clong, Clong, Clong) Q m n Clong(inequality ? 0 : 1)
     P = lrs_alloc_dic(Q)
     #Q->getvolume= TRUE; # compute the volume # TODO cheap do it
-    fillmatrix(inequality, P, Q, itr1)
-    if !(itr2 === nothing)
-        fillmatrix(inequality, P, Q, itr2, length(itr1))
-    end
+    fillmatrix.(inequality, P, Q, itr, offset)
     # This is the objective. If I have no objective LRS might fail
     if inequality
         setrow(P, Q, 0, ones(Rational{BigInt}, n), true)
@@ -93,7 +89,7 @@ mutable struct LRSLinearitySpace{N}
     end
 end
 
-mutable struct LRSInequalityMatrix{N} <: HRepresentation{N, Rational{BigInt}}
+mutable struct LRSInequalityMatrix{N} <: Polyhedra.MixedHRep{N, Rational{BigInt}}
     P::Ptr{Clrs_dic}
     Q::Ptr{Clrs_dat}
     status::Symbol
@@ -104,35 +100,41 @@ mutable struct LRSInequalityMatrix{N} <: HRepresentation{N, Rational{BigInt}}
         m
     end
 end
-changefulldim{N}(::Type{LRSInequalityMatrix{N}}, NewN) = LRSInequalityMatrix{NewN}
-decomposedfast(ine::LRSInequalityMatrix) = false
-eltype{N}(::Type{LRSInequalityMatrix{N}}) = Rational{BigInt}
-eltype(::LRSInequalityMatrix) = Rational{BigInt}
+Polyhedra.similar_type(::Type{<:LRSInequalityMatrix}, ::FullDim{N}, ::Type{Rational{BigInt}}) where N = LRSInequalityMatrix{N}
 
-mutable struct LRSGeneratorMatrix{N} <: VRepresentation{N, Rational{BigInt}}
+mutable struct LRSGeneratorMatrix{N} <: Polyhedra.MixedVRep{N, Rational{BigInt}}
     P::Ptr{Clrs_dic}
     Q::Ptr{Clrs_dat}
     status::Symbol
     lin::Nullable{LRSLinearitySpace{N}}
-    function LRSGeneratorMatrix{N}(P::Ptr{Clrs_dic}, Q::Ptr{Clrs_dat}) where {N}
-        m = new{N}(P, Q, :AtNoBasis, nothing)
+    cone::Bool # If true, LRS will not return any point so we need to add the origin
+    function LRSGeneratorMatrix{N}(P::Ptr{Clrs_dic}, Q::Ptr{Clrs_dat}) where N
+        m = _length(P)
+        cone = !iszero(m) # If there is no ray and no point, it is empty so we should not add the origin
+        for i in 1:m
+            if isrowpoint(P, Q, i)
+                cone = false
+                break
+            end
+        end
+        m = new{N}(P, Q, :AtNoBasis, nothing, cone)
         finalizer(m, myfree)
         m
     end
 end
-changefulldim{N}(::Type{LRSGeneratorMatrix{N}}, NewN) = LRSGeneratorMatrix{NewN}
-decomposedfast(ine::LRSGeneratorMatrix) = false
-eltype{N}(::Type{LRSGeneratorMatrix{N}}) = Rational{BigInt}
-eltype(::LRSGeneratorMatrix) = Rational{BigInt}
+Polyhedra.similar_type(::Type{<:LRSGeneratorMatrix}, ::FullDim{N}, ::Type{Rational{BigInt}}) where N = LRSGeneratorMatrix{N}
+Polyhedra.coefficienttype{N}(::Type{LRSGeneratorMatrix{N}}) = Rational{BigInt}
+Polyhedra.coefficienttype(::LRSGeneratorMatrix) = Rational{BigInt}
 
 const LRSMatrix{N} = Union{LRSInequalityMatrix{N}, LRSGeneratorMatrix{N}}
+Polyhedra.arraytype(::Union{LRSMatrix, Type{<:LRSMatrix}}) = Vector{Rational{BigInt}}
+Polyhedra.coefficienttype(::Union{LRSMatrix, Type{<:LRSMatrix}}) = Rational{BigInt}
 
 function linset(matrix::LRSMatrix)
     extractinputlinset(unsafe_load(matrix.Q))
 end
-function Base.length(matrix::LRSMatrix)
-    unsafe_load(matrix.P).m
-end
+_length(P::Ptr{Clrs_dic}) = unsafe_load(P).m
+Base.length(matrix::LRSMatrix) = _length(matrix.P)
 
 LRSMatrix(hrep::HRepresentation) = LRSInequalityMatrix(hrep)
 LRSMatrix(vrep::VRepresentation) = LRSGeneratorMatrix(vrep)
@@ -153,6 +155,13 @@ function myfree(m::LRSMatrix)
     @lrs_ccall free_dic_and_dat Void (Ptr{Clrs_dic}, Ptr{Clrs_dat}) m.P m.Q
 end
 
+_islin(rep::LRSMatrix, idx::Polyhedra.Index) = isininputlinset(unsafe_load(rep.Q), idx.value)
+Polyhedra.islin(hrep::LRSInequalityMatrix{N}, idx::Polyhedra.HIndex{N, Rational{BigInt}}) where N = _islin(hrep, idx)
+Polyhedra.islin(vrep::LRSGeneratorMatrix{N}, idx::Polyhedra.VIndex{N, Rational{BigInt}}) where N = !(vrep.cone && idx.value == nvreps(vrep)) && _islin(vrep, idx)
+
+Base.done(idxs::Polyhedra.Indices{N, Rational{BigInt}, ElemT, <:LRSMatrix{N}}, idx::Polyhedra.Index{N, Rational{BigInt}, ElemT}) where {N, ElemT} = idx.value > length(idxs.rep)
+Base.get(rep::LRSMatrix{N}, idx::Polyhedra.Index{N, Rational{BigInt}}) where N = Polyhedra.valuetype(idx)(extractrow(rep, idx.value)...)
+
 # H-representation
 
 #LRSInequalityMatrix{N,T}(rep::Rep{N,T}) = LRSInequalityMatrix{N,polytypefor(T), mytypefor(T)}(rep) # TODO finish this line
@@ -163,44 +172,21 @@ function LRSInequalityMatrix(filename::AbstractString)
 end
 LRSInequalityMatrix(rep::HRep{N}) where {N} = LRSInequalityMatrix{N}(rep)
 
-copy(ine::LRSInequalityMatrix{N}) where {N} = LRSInequalityMatrix{N}(hreps(ine))
+Base.copy(ine::LRSInequalityMatrix{N}) where {N} = LRSInequalityMatrix{N}(Polyhedra.hreps(ine)...)
 
-function LRSInequalityMatrix{N}(it::HRepIterator{N, Rational{BigInt}}) where N
-    P, Q = initmatrix(true, it)
-    LRSInequalityMatrix{N}(P, Q)
-end
-function LRSInequalityMatrix{N}(hps, hss) where N
-    P, Q = initmatrix(true, hps, hss)
+function LRSInequalityMatrix{N}(hits::Polyhedra.HIt{N}...) where N
+    P, Q = initmatrix(FullDim{N}(), true, hits...)
     LRSInequalityMatrix{N}(P, Q)
 end
 
 nhreps(matrix::LRSInequalityMatrix) = length(matrix)
 neqs(matrix::LRSInequalityMatrix) = unsafe_load(matrix.Q).nlinearity
-nineqs(matrix::LRSInequalityMatrix) = length(matrix) - neqs(matrix)
+Base.length(idxs::Polyhedra.Indices{N, Rational{BigInt}, <:HyperPlane{N, Rational{BigInt}}, <:LRSInequalityMatrix{N}}) where N = neqs(idxs.rep)
+Base.length(idxs::Polyhedra.Indices{N, Rational{BigInt}, <:HalfSpace{N, Rational{BigInt}}, <:LRSInequalityMatrix{N}}) where N = nhreps(idxs.rep) - neqs(idxs.rep)
 
-starthrep(ine::LRSInequalityMatrix) = 1
-donehrep(ine::LRSInequalityMatrix, state) = state > length(ine)
-nexthrep(ine::LRSInequalityMatrix, state) = (extractrow(ine, state), state+1)
-
-function nextnz(Q, i, n)
-    while i <= n && !isininputlinset(Q, i)
-        i += 1
-    end
-    i
+function Base.isvalid(hrep::LRSInequalityMatrix{N}, idx::Polyhedra.HIndex{N, Rational{BigInt}}) where N
+    0 < idx.value <= nhreps(hrep) && Polyhedra.islin(hrep, idx) == islin(idx)
 end
-starteq(ine::LRSInequalityMatrix) = nextnz(unsafe_load(ine.Q), 1, length(ine))
-doneeq(ine::LRSInequalityMatrix, state) = state > length(ine)
-nexteq(ine::LRSInequalityMatrix, state) = (extractrow(ine, state), nextnz(unsafe_load(ine.Q), state+1, length(ine)))
-
-function nextz(Q, i, n)
-  while i <= n && isininputlinset(Q, i)
-    i += 1
-  end
-  i
-end
-startineq(ine::LRSInequalityMatrix) = nextz(unsafe_load(ine.Q), 1, length(ine))
-doneineq(ine::LRSInequalityMatrix, state) = state > length(ine)
-nextineq(ine::LRSInequalityMatrix, state) = (extractrow(ine, state), nextz(unsafe_load(ine.Q), state+1, length(ine)))
 
 # V-representation
 
@@ -210,45 +196,23 @@ function LRSGeneratorMatrix(filename::AbstractString)
 end
 LRSGeneratorMatrix(rep::VRep{N}) where {N} = LRSGeneratorMatrix{N}(rep)
 
-copy(ext::LRSGeneratorMatrix{N}) where {N} = LRSGeneratorMatrix{N}(vreps(ext))
+Base.copy(ext::LRSGeneratorMatrix{N}) where {N} = LRSGeneratorMatrix{N}(Polyhedra.vreps(ext)...)
 
-function LRSGeneratorMatrix{N}(it::VRepIterator{N, Rational{BigInt}}) where N
-    P, Q = initmatrix(false, it)
-    LRSGeneratorMatrix{N}(P, Q)
-end
-function LRSGeneratorMatrix{N}(points, rays) where N
-    P, Q = initmatrix(false, rays, points)
+function LRSGeneratorMatrix{N}(vits::Polyhedra.VIt{N}...) where N
+    P, Q = initmatrix(FullDim{N}(), false, vits...)
     LRSGeneratorMatrix{N}(P, Q)
 end
 
 nvreps(ext::LRSGeneratorMatrix) = length(ext)
-npoints(matrix::LRSGeneratorMatrix) = count(i -> isrowpoint(matrix, i), 1:length(matrix))
-nrays(matrix::LRSGeneratorMatrix) = length(matrix) - npoints(matrix)
-
-startvrep(ext::LRSGeneratorMatrix) = 1
-donevrep(ext::LRSGeneratorMatrix, state) = state > length(ext)
-nextvrep(ext::LRSGeneratorMatrix, state) = (extractrow(ext, state), state+1)
-
-function nextrayidx(ext::LRSGeneratorMatrix, i, n)
-    while i <= n && isrowpoint(ext, i)
-        i += 1
+function Base.length(idxs::Polyhedra.PointIndices{N, Rational{BigInt}, <:LRSGeneratorMatrix{N}}) where N
+    if idxs.rep.cone
+        1
+    else
+        Polyhedra.mixedlength(idxs)
     end
-    i
-end
-function nextpointidx(ext::LRSGeneratorMatrix, i, n)
-    while i <= n && !isrowpoint(ext, i)
-        i += 1
-    end
-    i
 end
 
-startray(ext::LRSGeneratorMatrix) = nextrayidx(ext, 1, length(ext))
-doneray(ext::LRSGeneratorMatrix, state) = state > length(ext)
-nextray(ext::LRSGeneratorMatrix, state) = (extractrow(ext, state), nextrayidx(ext, state+1, length(ext)))
-
-startpoint(ext::LRSGeneratorMatrix) = nextpointidx(ext, 1, length(ext))
-donepoint(ext::LRSGeneratorMatrix, state) = state > length(ext)
-nextpoint(ext::LRSGeneratorMatrix, state) = (extractrow(ext, state), nextpointidx(ext, state+1, length(ext)))
+Base.isvalid(vrep::LRSGeneratorMatrix{N}, idx::Polyhedra.VIndex{N, Rational{BigInt}}) where N = 0 < idx.value <= length(vrep) && Polyhedra.islin(vrep, idx) == islin(idx) && isrowpoint(vrep, idx.value) == ispoint(idx)
 
 #I should also remove linearity (should I remove one if hull && homogeneous ?)
 #getd{N}(m::LRSInequalityMatrix{N}) = N
@@ -262,19 +226,19 @@ function setrow(P::Ptr{Clrs_dic}, Q::Ptr{Clrs_dat}, i::Int, row::Vector{Rational
     den = map(x -> GMPInteger(x.den.alloc, x.den.size, x.den.d), row)
     @lrs_ccall set_row_mp Void (Ptr{Clrs_dic}, Ptr{Clrs_dat}, Clong, Clrs_mp_vector, Clrs_mp_vector, Clong) P Q i num den Clong(ineq)
 end
+setrow(P::Ptr{Clrs_dic}, Q::Ptr{Clrs_dat}, i::Int, row::AbstractVector{Rational{BigInt}}, ineq::Bool) = setrow(P, Q, i, collect(row), ineq) # e.g. for sparse a
 
 function setdebug(m::LRSMatrix, debug::Bool)
     @lrs_ccall setdebug Void (Ptr{Clrs_dat}, Clong) m.Q (debug ? Clrs_true : Clrs_false)
 end
 
-function isrowpoint(P::Clrs_dic, Q::Clrs_dat, i, offset)
-    row = unsafe_load(P.A, 1+i)
+function isrowpoint(P::Ptr{Clrs_dic}, Q::Ptr{Clrs_dat}, i)
+    offset = 1
+    row = unsafe_load(unsafe_load(P).A, 1+i)
     !iszero(extractbigintat(row, offset+1))
 end
 function isrowpoint(matrix::LRSGeneratorMatrix, i::Int)
-    P = unsafe_load(matrix.P)
-    Q = unsafe_load(matrix.Q)
-    isrowpoint(P, Q, i, 1)
+    (matrix.cone && i == nvreps(matrix)) || isrowpoint(matrix.P, matrix.Q, i)
 end
 
 function extractrow(P::Clrs_dic, Q::Clrs_dat, N, i, offset)
@@ -302,35 +266,20 @@ function extractrow(matrix::LRSInequalityMatrix{N}, i::Int) where N
     b = extractrow(P, Q, N, i, 0)
     β = b[1]
     a = -b[2:end]
-    if isininputlinset(Q, i)
-        HyperPlane(a, β)
-    else
-        HalfSpace(a, β)
-    end
+    a, β
 end
 
 function extractrow(matrix::LRSGeneratorMatrix{N}, i::Int) where N
-    P = unsafe_load(matrix.P)
-    Q = unsafe_load(matrix.Q)
-    #d = Q.n-offset-1 # FIXME when it is modified...
-    b = extractrow(P, Q, N, i, 1)
-    ispoint = b[1]
-    islin = isininputlinset(Q, i)
-    @assert ispoint == zero(Rational{BigInt}) || ispoint == one(Rational{BigInt})
-    a = b[2:end]
-    if ispoint == zero(Rational{BigInt})
-        if islin
-            Line(a)
-        else
-            Ray(a)
-        end
+    if matrix.cone && i == nvreps(matrix)
+        a = zero(arraytype(matrix))
     else
-        if islin
-            SymPoint(a)
-        else
-            a
-        end
+        P = unsafe_load(matrix.P)
+        Q = unsafe_load(matrix.Q)
+        #d = Q.n-offset-1 # FIXME when it is modified...
+        b = extractrow(P, Q, N, i, 1)
+        a = b[2:end]
     end
+    (a,) # Needs to be a tuple, see Base.get(::LRSMatrix, ...)
 end
 
 function isininputlinset(Q::Clrs_dat, j)

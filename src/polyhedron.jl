@@ -1,7 +1,9 @@
 export LRSLibrary
 
-mutable struct LRSLibrary <: PolyhedraLibrary
+struct LRSLibrary <: PolyhedraLibrary
 end
+Polyhedra.similar_library(::LRSLibrary, ::FullDim, ::Type{T}) where T<:Union{Integer,Rational} = LRSLibrary()
+Polyhedra.similar_library(::LRSLibrary, d::FullDim, ::Type{T}) where T = Polyhedra.default_library(d, T)
 
 mutable struct LRSPolyhedron{N} <: Polyhedron{N, Rational{BigInt}}
     ine::Nullable{HRepresentation{N, Rational{BigInt}}}
@@ -29,16 +31,10 @@ mutable struct LRSPolyhedron{N} <: Polyhedron{N, Rational{BigInt}}
         new{N}(nothing, nothing, ext, nothing, false, false, false, false)
     end
 end
-
-# ine may decompose fast but if ine is nothing I do not want to ask to compute it to see the type it is
-# saying false normally do not give troubles
-decomposedhfast{N}(::Type{LRSPolyhedron{N}}) = false
-decomposedvfast{N}(::Type{LRSPolyhedron{N}}) = false
-decomposedhfast(p::LRSPolyhedron{N}) where {N} = decomposedhfast(LRSPolyhedron{N})
-decomposedvfast(p::LRSPolyhedron{N}) where {N} = decomposedvfast(LRSPolyhedron{N})
-
-eltype{N}(::Type{LRSPolyhedron{N}}) = Rational{BigInt}
-eltype(::LRSPolyhedron) = Rational{BigInt}
+Polyhedra.library(::LRSPolyhedron) = LRSLibrary()
+Polyhedra.arraytype(::Union{LRSPolyhedron, Type{<:LRSPolyhedron}}) = Vector{Rational{BigInt}}
+Polyhedra.similar_type(::Type{<:LRSPolyhedron}, ::FullDim{N}, ::Type{Rational{BigInt}}) where N = LRSPolyhedron{N}
+Polyhedra.similar_type(::Type{<:LRSPolyhedron}, d::FullDim, ::Type{T}) where T = Polyhedra.default_type(d, T)
 
 # Helpers
 function getine(p::LRSPolyhedron)
@@ -101,19 +97,13 @@ end
 
 
 # Implementation of Polyhedron's mandatory interface
-polyhedron(repit::Union{Representation{N},HRepIterator{N},VRepIterator{N}}, ::LRSLibrary) where {N} = LRSPolyhedron{N}(repit)
+polyhedron(rep::Representation{N}, ::LRSLibrary) where N = LRSPolyhedron{N}(rep)
 
-getlibraryfor(p::LRSPolyhedron, n::Int, ::Type{T}) where {T<:Union{Integer,Rational}} = LRSLibrary()
-Polyhedra.changefulldim{N}(::Type{LRSPolyhedron{N}}, n::Int)= LRSPolyhedron{n}
-
-LRSPolyhedron{N}(it::HRepIterator{N,T}) where {N, T} = LRSPolyhedron{N}(LRSInequalityMatrix{N}(it))
-LRSPolyhedron{N}(it::VRepIterator{N,T}) where {N, T} = LRSPolyhedron{N}(LRSGeneratorMatrix{N}(it))
-
-function LRSPolyhedron{N}(eqs::EqIterator, ineqs::IneqIterator) where N
-    LRSPolyhedron{N}(LRSInequalityMatrix{N}(eqs, ineqs))
+function LRSPolyhedron{N}(hits::Polyhedra.HIt{N}...) where N
+    LRSPolyhedron{N}(LRSInequalityMatrix{N}(hits...))
 end
-function LRSPolyhedron{N}(points::PointIterator, rays::RayIterator) where N
-    LRSPolyhedron{N}(LRSGeneratorMatrix{N}(points, rays))
+function LRSPolyhedron{N}(vits::Polyhedra.VIt{N}...) where N
+    LRSPolyhedron{N}(LRSGeneratorMatrix{N}(vits...))
 end
 
 function Base.copy(p::LRSPolyhedron{N}) where N
@@ -128,22 +118,22 @@ function Base.copy(p::LRSPolyhedron{N}) where N
     LRSPolyhedron{N}(ine, ext, p.hlinearitydetected, p.vlinearitydetected, p.noredundantinequality, p.noredundantgenerator)
 end
 function Base.push!(p::LRSPolyhedron{N}, ine::HRepresentation{N}) where N
-    updateine!(p, intersect(getine(p), changeeltype(ine, Rational{BigInt})))
+    updateine!(p, intersect(getine(p), HRepresentation{N, Rational{BigInt}}(ine)))
 end
 function Base.push!(p::LRSPolyhedron{N}, ext::VRepresentation{N}) where N
-    updateext!(p, convexhull(getext(p), changeeltype(ext, Rational{BigInt})))
+    updateext!(p, convexhull(getext(p), VRepresentation{N, Rational{BigInt}}(ext)))
 end
 function hrepiscomputed(p::LRSPolyhedron)
     !isnull(p.ine)
 end
 function hrep(p::LRSPolyhedron)
-    copy(getine(p))
+    getine(p)
 end
 function vrepiscomputed(p::LRSPolyhedron)
     !isnull(p.ext)
 end
 function vrep(p::LRSPolyhedron)
-    copy(getext(p))
+    getext(p)
 end
 #eliminate(p::Polyhedron, delset::IntSet)                     = error("not implemented")
 function detecthlinearities!(p::LRSPolyhedron)
@@ -195,30 +185,14 @@ end
 #function getredundantinequalities(p::LRSPolyhedron)
 #  redund(getinem(p, :AlmostFresh))
 #end
-function ishredundant(p::LRSPolyhedron, i::Integer; strongly=false, cert=false, solver=Polyhedra.defaultLPsolverfor(p))
+_getrepfor(p::LRSPolyhedron, ::Polyhedra.HIndex, status::Symbol) = getinem(p, status)
+_getrepfor(p::LRSPolyhedron, ::Polyhedra.VIndex, status::Symbol) = getextm(p, status)
+function isredundant(p::LRSPolyhedron, idx::Polyhedra.Index; strongly=false, cert=false, solver=Polyhedra.defaultLPsolverfor(p))
     @assert !strongly && !cert
-    redundi(getinem(p, :AlmostFresh), i) # FIXME does it need to be fresh ?
-end
-function isvredundant(p::LRSPolyhedron, i::Integer; strongly=false, cert=false, solver=Polyhedra.defaultLPsolverfor(p))
-    @assert !strongly && !cert
-    redundi(getextm(p, :AlmostFresh), i) # FIXME does it need to be fresh ?
+    redundi(_getrepfor(p, idx, :AlmostFresh), idx.value) # FIXME does it need to be fresh ?
 end
 # Optional interface
 function Polyhedra.loadpolyhedron!(p::LRSPolyhedron, filename::AbstractString, ::Type{Val{:ext}})
     clearfield!(p)
     p.extm = LRSGeneratorMatrix(string(filename, ".ext"))
-end
-
-for f in [:hashreps, :nhreps, :starthrep, :hasineqs, :nineqs, :startineq, :haseqs, :neqs, :starteq]
-    @eval $f(p::LRSPolyhedron) = $f(getine(p))
-end
-for f in [:donehrep, :nexthrep, :doneineq, :nextineq, :doneeq, :nexteq]
-    @eval $f(p::LRSPolyhedron, state) = $f(getine(p), state)
-end
-
-for f in [:hasvreps, :nvreps, :startvrep, :haspoints, :npoints, :startpoint, :hasrays, :nrays, :startray]
-    @eval $f(p::LRSPolyhedron) = $f(getext(p))
-end
-for f in [:donevrep, :nextvrep, :donepoint, :nextpoint, :doneray, :nextray]
-    @eval $f(p::LRSPolyhedron, state) = $f(getext(p), state)
 end
