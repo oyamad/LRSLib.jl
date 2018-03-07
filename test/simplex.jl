@@ -10,20 +10,20 @@
     V = [0 0; 0 1; 1 0]
 
     function minitest(ine::LRSInequalityMatrix)
-        ine  = SimpleHRepresentation{2,Int}(ine)
+        ine  = MixedMatHRep{2,Int}(ine)
         @test sortrows([ine.b -ine.A]) == sortrows([b -A])
         @test ine.linset == linset
     end
     function minitest(ext::LRSGeneratorMatrix)
-        ext  = SimpleVRepresentation{2,Int}(ext)
+        ext  = MixedMatVRep{2,Int}(ext)
         @test sortrows(ext.V) == V
         @test length(ext.R) == 0
         @test ext.Vlinset == IntSet()
         @test ext.Rlinset == IntSet()
     end
 
-    ine = Polyhedra.SimpleHRepresentation(A, b, linset)
-    ext = Polyhedra.SimpleVRepresentation(V)
+    ine = hrep(A, b, linset)
+    ext = vrep(V)
 
     inem1 = LRSInequalityMatrix("simplex.ine")
     minitest(inem1)
