@@ -271,7 +271,7 @@ end
 
 function extractrow(matrix::LRSGeneratorMatrix{N}, i::Int) where N
     if matrix.cone && i == nvreps(matrix)
-        a = zero(arraytype(matrix))
+        a = Polyhedra.origin(Polyhedra.arraytype(matrix), FullDim{N}())
     else
         P = unsafe_load(matrix.P)
         Q = unsafe_load(matrix.Q)

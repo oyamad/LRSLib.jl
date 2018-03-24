@@ -117,10 +117,10 @@ function Base.copy(p::LRSPolyhedron{N}) where N
     end
     LRSPolyhedron{N}(ine, ext, p.hlinearitydetected, p.vlinearitydetected, p.noredundantinequality, p.noredundantgenerator)
 end
-function Base.push!(p::LRSPolyhedron{N}, ine::HRepresentation{N}) where N
+function Base.intersect!(p::LRSPolyhedron{N}, ine::HRepresentation{N}) where N
     updateine!(p, intersect(getine(p), HRepresentation{N, Rational{BigInt}}(ine)))
 end
-function Base.push!(p::LRSPolyhedron{N}, ext::VRepresentation{N}) where N
+function Polyhedra.convexhull!(p::LRSPolyhedron{N}, ext::VRepresentation{N}) where N
     updateext!(p, convexhull(getext(p), VRepresentation{N, Rational{BigInt}}(ext)))
 end
 function hrepiscomputed(p::LRSPolyhedron)
