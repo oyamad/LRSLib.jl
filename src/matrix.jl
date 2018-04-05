@@ -134,7 +134,8 @@ function linset(matrix::LRSMatrix)
     extractinputlinset(unsafe_load(matrix.Q))
 end
 _length(P::Ptr{Clrs_dic}) = unsafe_load(P).m
-Base.length(matrix::LRSMatrix) = _length(matrix.P)
+Base.length(matrix::LRSInequalityMatrix) = _length(matrix.P)
+Base.length(matrix::LRSGeneratorMatrix) = _length(matrix.P) + matrix.cone
 
 LRSMatrix(hrep::HRepresentation) = LRSInequalityMatrix(hrep)
 LRSMatrix(vrep::VRepresentation) = LRSGeneratorMatrix(vrep)
@@ -212,7 +213,17 @@ function Base.length(idxs::Polyhedra.PointIndices{N, Rational{BigInt}, <:LRSGene
     end
 end
 
-Base.isvalid(vrep::LRSGeneratorMatrix{N}, idx::Polyhedra.VIndex{N, Rational{BigInt}}) where N = 0 < idx.value <= length(vrep) && Polyhedra.islin(vrep, idx) == islin(idx) && isrowpoint(vrep, idx.value) == ispoint(idx)
+function Base.isvalid(vrep::LRSGeneratorMatrix{N}, idx::Polyhedra.VIndex{N, Rational{BigInt}}) where N
+    @show length(vrep)
+    @show idx
+    isp = isrowpoint(vrep, idx.value)
+    isl = Polyhedra.islin(vrep, idx)
+    @show isp
+    @show ispoint(idx)
+    @show isl
+    @show islin(idx)
+    0 < idx.value <= length(vrep) && isl == islin(idx) && isp == ispoint(idx)
+end
 
 #I should also remove linearity (should I remove one if hull && homogeneous ?)
 #getd{N}(m::LRSInequalityMatrix{N}) = N
@@ -238,6 +249,7 @@ function isrowpoint(P::Ptr{Clrs_dic}, Q::Ptr{Clrs_dat}, i)
     !iszero(extractbigintat(row, offset+1))
 end
 function isrowpoint(matrix::LRSGeneratorMatrix, i::Int)
+    @show matrix.cone && i == nvreps(matrix)
     (matrix.cone && i == nvreps(matrix)) || isrowpoint(matrix.P, matrix.Q, i)
 end
 

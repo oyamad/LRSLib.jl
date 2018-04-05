@@ -136,22 +136,22 @@ function vrep(p::LRSPolyhedron)
     getext(p)
 end
 #eliminate(p::Polyhedron, delset::IntSet)                     = error("not implemented")
-function detecthlinearities!(p::LRSPolyhedron)
+function detecthlinearity!(p::LRSPolyhedron)
     if !p.hlinearitydetected
         getext(p)
         p.inem = nothing
         p.ine = nothing
         getine(p)
-        # getine sets hlinearities as detected and no redundant ineq.
+        # getine sets hlinearity as detected and no redundant ineq.
     end
 end
-function detectvlinearities!(p::LRSPolyhedron)
+function detectvlinearity!(p::LRSPolyhedron)
     if !p.vlinearitydetected
         getine(p)
         p.extm = nothing
         p.ext = nothing
         getext(p)
-        # getext sets vlinearities as detected and no redundant gen.
+        # getext sets vlinearity as detected and no redundant gen.
     end
 end
 function removehredundancy!(p::LRSPolyhedron)
@@ -170,7 +170,7 @@ function removehredundancy!(p::LRSPolyhedron)
 end
 function removevredundancy!(p::LRSPolyhedron)
     if !p.noredundantgenerator
-        detectvlinearities!(p)
+        detectvlinearity!(p)
         ext = getext(p)
         extm = getextm(p, :AlmostFresh) # FIXME does it need to be fresh ?
         redset = redund(extm)

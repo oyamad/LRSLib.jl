@@ -18,7 +18,6 @@
         ext  = MixedMatVRep{2,Int}(ext)
         @test sortrows(ext.V) == V
         @test length(ext.R) == 0
-        @test ext.Vlinset == IntSet()
         @test ext.Rlinset == IntSet()
     end
 

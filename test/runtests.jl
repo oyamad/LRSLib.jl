@@ -2,7 +2,7 @@ using LRSLib
 using Polyhedra
 using Base.Test
 using Clp
-lpsolver = Clp.ClpSolver()
+lpsolver = tuple(Clp.ClpSolver())
 
 include("cube.jl")
 include("simplex.jl")
