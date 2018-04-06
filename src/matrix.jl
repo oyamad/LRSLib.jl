@@ -214,14 +214,8 @@ function Base.length(idxs::Polyhedra.PointIndices{N, Rational{BigInt}, <:LRSGene
 end
 
 function Base.isvalid(vrep::LRSGeneratorMatrix{N}, idx::Polyhedra.VIndex{N, Rational{BigInt}}) where N
-    @show length(vrep)
-    @show idx
     isp = isrowpoint(vrep, idx.value)
     isl = Polyhedra.islin(vrep, idx)
-    @show isp
-    @show ispoint(idx)
-    @show isl
-    @show islin(idx)
     0 < idx.value <= length(vrep) && isl == islin(idx) && isp == ispoint(idx)
 end
 
@@ -244,12 +238,11 @@ function setdebug(m::LRSMatrix, debug::Bool)
 end
 
 function isrowpoint(P::Ptr{Clrs_dic}, Q::Ptr{Clrs_dat}, i)
-    offset = 1
+    offset = unsafe_load(Q).homogeneous == Clrs_true ? 0 : 1
     row = unsafe_load(unsafe_load(P).A, 1+i)
     !iszero(extractbigintat(row, offset+1))
 end
 function isrowpoint(matrix::LRSGeneratorMatrix, i::Int)
-    @show matrix.cone && i == nvreps(matrix)
     (matrix.cone && i == nvreps(matrix)) || isrowpoint(matrix.P, matrix.Q, i)
 end
 
@@ -288,7 +281,9 @@ function extractrow(matrix::LRSGeneratorMatrix{N}, i::Int) where N
         P = unsafe_load(matrix.P)
         Q = unsafe_load(matrix.Q)
         #d = Q.n-offset-1 # FIXME when it is modified...
-        b = extractrow(P, Q, N, i, 1)
+        @assert Q.hull == Clrs_true
+        offset = Q.homogeneous == Clrs_true ? 0 : 1
+        b = extractrow(P, Q, N, i, offset)
         a = b[2:end]
     end
     (a,) # Needs to be a tuple, see Base.get(::LRSMatrix, ...)
