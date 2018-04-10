@@ -1,9 +1,9 @@
 # LRSLib
 
-| **PackageEvaluator** | **Build Status** |
-|:--------------------:|:----------------:|
-| [![][pkg-0.5-img]][pkg-0.5-url] | [![Build Status][build-img]][build-url] |
-| [![][pkg-0.6-img]][pkg-0.6-url] | [![Coveralls branch][coveralls-img]][coveralls-url] [![Codecov branch][codecov-img]][codecov-url] |
+| **PackageEvaluator** | **Build Status** | **References to cite** |
+|:--------------------:|:----------------:|:----------------------:|
+| [![][pkg-0.5-img]][pkg-0.5-url] | [![Build Status][build-img]][build-url] | [![DOI][zenodo-img]][zenodo-url] |
+| [![][pkg-0.6-img]][pkg-0.6-url] | [![Coveralls branch][coveralls-img]][coveralls-url] [![Codecov branch][codecov-img]][codecov-url] | |
 
 LRSLib.jl is a wrapper for [lrs](http://cgm.cs.mcgill.ca/~avis/C/lrs.html). This module can either be used in a "lower level" using the [API of lrslib](http://cgm.cs.mcgill.ca/~avis/C/lrslib/lrslib.html) or using the higher level interface of [Polyhedra.jl](https://github.com/JuliaPolyhedra/Polyhedra.jl).
 
@@ -26,3 +26,6 @@ These changes are not upstream yet so this version is used instead of the upstre
 [coveralls-url]: https://coveralls.io/github/JuliaPolyhedra/LRSLib.jl?branch=master
 [codecov-img]: http://codecov.io/github/JuliaPolyhedra/LRSLib.jl/coverage.svg?branch=master
 [codecov-url]: http://codecov.io/github/JuliaPolyhedra/LRSLib.jl?branch=master
+
+[zenodo-url]: https://doi.org/10.5281/zenodo.1214579
+[zenodo-img]: https://zenodo.org/badge/DOI/10.5281/zenodo.1214579.svg
