@@ -123,7 +123,7 @@ mutable struct LRSGeneratorMatrix{N} <: Polyhedra.MixedVRep{N, Rational{BigInt}}
     end
 end
 Polyhedra.similar_type(::Type{<:LRSGeneratorMatrix}, ::FullDim{N}, ::Type{Rational{BigInt}}) where N = LRSGeneratorMatrix{N}
-Polyhedra.coefficienttype{N}(::Type{LRSGeneratorMatrix{N}}) = Rational{BigInt}
+Polyhedra.coefficienttype(::Type{LRSGeneratorMatrix{N}}) where {N} = Rational{BigInt}
 Polyhedra.coefficienttype(::LRSGeneratorMatrix) = Rational{BigInt}
 
 const LRSMatrix{N} = Union{LRSInequalityMatrix{N}, LRSGeneratorMatrix{N}}
