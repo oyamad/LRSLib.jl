@@ -1,6 +1,13 @@
 export LRSLibrary
+import MathProgBase
+const MPB = MathProgBase
+import JuMP
 
 struct LRSLibrary <: PolyhedraLibrary
+    solver::MPB.AbstractMathProgSolver
+    function LRSLibrary(solver=JuMP.UnsetSolver())
+        new(solver)
+    end
 end
 Polyhedra.similar_library(::LRSLibrary, ::FullDim, ::Type{T}) where T<:Union{Integer,Rational} = LRSLibrary()
 Polyhedra.similar_library(::LRSLibrary, d::FullDim, ::Type{T}) where T = Polyhedra.default_library(d, T)
@@ -14,24 +21,31 @@ mutable struct LRSPolyhedron{N} <: Polyhedron{N, Rational{BigInt}}
     vlinearitydetected::Bool
     noredundantinequality::Bool
     noredundantgenerator::Bool
+    solver::MPB.AbstractMathProgSolver
 
-    function LRSPolyhedron{N}(ine::HRepresentation{N, Rational{BigInt}}, ext::VRepresentation{N, Rational{BigInt}}, hld::Bool, vld::Bool, nri::Bool, nrg::Bool) where {N}
-        new{N}(ine, nothing, ext, nothing, hld, vld, nri, nrg)
+    function LRSPolyhedron{N}(ine::HRepresentation{N, Rational{BigInt}}, ext::VRepresentation{N, Rational{BigInt}}, hld::Bool, vld::Bool, nri::Bool, nrg::Bool, solver::MPB.AbstractMathProgSolver) where N
+        new{N}(ine, nothing, ext, nothing, hld, vld, nri, nrg, solver)
     end
-    function LRSPolyhedron{N}(ine::HRepresentation{N, Rational{BigInt}}, ::Void, hld::Bool, vld::Bool, nri::Bool, nrg::Bool) where {N}
-        new{N}(ine, nothing, nothing, nothing, hld, vld, nri, nrg)
+    function LRSPolyhedron{N}(ine::HRepresentation{N, Rational{BigInt}}, ::Void, hld::Bool, vld::Bool, nri::Bool, nrg::Bool, solver::MPB.AbstractMathProgSolver) where N
+        new{N}(ine, nothing, nothing, nothing, hld, vld, nri, nrg, solver)
     end
-    function LRSPolyhedron{N}(::Void, ext::VRepresentation{N, Rational{BigInt}}, hld::Bool, vld::Bool, nri::Bool, nrg::Bool) where {N}
-        new{N}(nothing, nothing, ext, nothing, hld, vld, nri, nrg)
+    function LRSPolyhedron{N}(::Void, ext::VRepresentation{N, Rational{BigInt}}, hld::Bool, vld::Bool, nri::Bool, nrg::Bool, solver::MPB.AbstractMathProgSolver) where N
+        new{N}(nothing, nothing, ext, nothing, hld, vld, nri, nrg, solver)
     end
-    function LRSPolyhedron{N}(ine::HRepresentation{N, Rational{BigInt}}) where {N}
-        new{N}(ine, nothing, nothing, nothing, false, false, false, false)
+    function LRSPolyhedron{N}(ine::HRepresentation{N, Rational{BigInt}}, solver::MPB.AbstractMathProgSolver) where N
+        new{N}(ine, nothing, nothing, nothing, false, false, false, false, solver)
     end
-    function LRSPolyhedron{N}(ext::VRepresentation{N, Rational{BigInt}}) where {N}
-        new{N}(nothing, nothing, ext, nothing, false, false, false, false)
+    function LRSPolyhedron{N}(ext::VRepresentation{N, Rational{BigInt}}, solver::MPB.AbstractMathProgSolver) where N
+        new{N}(nothing, nothing, ext, nothing, false, false, false, false, solver)
     end
 end
+LRSPolyhedron{N}(h::HRepresentation{N}, solver::MPB.AbstractMathProgSolver) where N = LRSPolyhedron{N}(HRepresentation{N, Rational{BigInt}}(h), solver)
+LRSPolyhedron{N}(v::VRepresentation{N}, solver::MPB.AbstractMathProgSolver) where N = LRSPolyhedron{N}(VRepresentation{N, Rational{BigInt}}(v), solver)
+
 Polyhedra.library(::LRSPolyhedron) = LRSLibrary()
+default_solver(p::LRSPolyhedron) = p.solver
+supportssolver(::Type{<:LRSPolyhedron}) = true
+
 Polyhedra.arraytype(::Union{LRSPolyhedron, Type{<:LRSPolyhedron}}) = Vector{Rational{BigInt}}
 Polyhedra.similar_type(::Type{<:LRSPolyhedron}, ::FullDim{N}, ::Type{Rational{BigInt}}) where N = LRSPolyhedron{N}
 Polyhedra.similar_type(::Type{<:LRSPolyhedron}, d::FullDim, ::Type{T}) where T = Polyhedra.default_type(d, T)
@@ -97,13 +111,13 @@ end
 
 
 # Implementation of Polyhedron's mandatory interface
-polyhedron(rep::Representation{N}, ::LRSLibrary) where N = LRSPolyhedron{N}(rep)
+polyhedron(rep::Representation{N}, lib::LRSLibrary) where N = LRSPolyhedron{N}(rep, lib.solver)
 
-function LRSPolyhedron{N}(hits::Polyhedra.HIt{N}...) where N
-    LRSPolyhedron{N}(LRSInequalityMatrix{N}(hits...))
+function LRSPolyhedron{N}(hits::Polyhedra.HIt{N}...; solver=JuMP.UnsetSolver()) where N
+    LRSPolyhedron{N}(LRSInequalityMatrix{N}(hits...), solver)
 end
-function LRSPolyhedron{N}(vits::Polyhedra.VIt{N}...) where N
-    LRSPolyhedron{N}(LRSGeneratorMatrix{N}(vits...))
+function LRSPolyhedron{N}(vits::Polyhedra.VIt{N}...; solver=JuMP.UnsetSolver()) where N
+    LRSPolyhedron{N}(LRSGeneratorMatrix{N}(vits...), solver)
 end
 
 function Base.copy(p::LRSPolyhedron{N}) where N
@@ -115,7 +129,7 @@ function Base.copy(p::LRSPolyhedron{N}) where N
     if !isnull(p.ext)
         ext = copy(get(p.ext))
     end
-    LRSPolyhedron{N}(ine, ext, p.hlinearitydetected, p.vlinearitydetected, p.noredundantinequality, p.noredundantgenerator)
+    LRSPolyhedron{N}(ine, ext, p.hlinearitydetected, p.vlinearitydetected, p.noredundantinequality, p.noredundantgenerator, p.solver)
 end
 function Base.intersect!(p::LRSPolyhedron{N}, ine::HRepresentation{N}) where N
     updateine!(p, intersect(getine(p), HRepresentation{N, Rational{BigInt}}(ine)))
