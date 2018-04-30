@@ -43,8 +43,8 @@ LRSPolyhedron{N}(h::HRepresentation{N}, solver::MPB.AbstractMathProgSolver) wher
 LRSPolyhedron{N}(v::VRepresentation{N}, solver::MPB.AbstractMathProgSolver) where N = LRSPolyhedron{N}(VRepresentation{N, Rational{BigInt}}(v), solver)
 
 Polyhedra.library(::LRSPolyhedron) = LRSLibrary()
-default_solver(p::LRSPolyhedron) = p.solver
-supportssolver(::Type{<:LRSPolyhedron}) = true
+Polyhedra.default_solver(p::LRSPolyhedron) = p.solver
+Polyhedra.supportssolver(::Type{<:LRSPolyhedron}) = true
 
 Polyhedra.arraytype(::Union{LRSPolyhedron, Type{<:LRSPolyhedron}}) = Vector{Rational{BigInt}}
 Polyhedra.similar_type(::Type{<:LRSPolyhedron}, ::FullDim{N}, ::Type{Rational{BigInt}}) where N = LRSPolyhedron{N}
