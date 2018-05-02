@@ -201,7 +201,7 @@ end
 #end
 _getrepfor(p::LRSPolyhedron, ::Polyhedra.HIndex, status::Symbol) = getinem(p, status)
 _getrepfor(p::LRSPolyhedron, ::Polyhedra.VIndex, status::Symbol) = getextm(p, status)
-function isredundant(p::LRSPolyhedron, idx::Polyhedra.Index; strongly=false, cert=false, solver=Polyhedra.defaultLPsolverfor(p))
+function isredundant(p::LRSPolyhedron, idx::Polyhedra.Index; strongly=false, cert=false, solver=Polyhedra.solver(p))
     @assert !strongly && !cert
     redundi(_getrepfor(p, idx, :AlmostFresh), idx.value) # FIXME does it need to be fresh ?
 end
