@@ -100,13 +100,13 @@ function clearfield!(p::LRSPolyhedron)
     noredundantinequality = false
     noredundantgenerator = false
 end
-function updateine!(p::LRSPolyhedron{N}, ine::HRepresentation{N, Rational{BigInt}}) where N
+function Polyhedra.resethrep!(p::LRSPolyhedron{N}, h::HRepresentation{N, Rational{BigInt}}) where N
     clearfield!(p)
-    p.ine = ine
+    p.ine = h
 end
-function updateext!(p::LRSPolyhedron{N}, ext::VRepresentation{N, Rational{BigInt}}) where N
+function Polyhedra.resetvrep!(p::LRSPolyhedron{N}, v::VRepresentation{N, Rational{BigInt}}) where N
     clearfield!(p)
-    p.ext = ext
+    p.ext = v
 end
 
 
@@ -130,12 +130,6 @@ function Base.copy(p::LRSPolyhedron{N}) where N
         ext = copy(get(p.ext))
     end
     LRSPolyhedron{N}(ine, ext, p.hlinearitydetected, p.vlinearitydetected, p.noredundantinequality, p.noredundantgenerator, p.solver)
-end
-function Base.intersect!(p::LRSPolyhedron{N}, ine::HRepresentation{N}) where N
-    updateine!(p, intersect(getine(p), HRepresentation{N, Rational{BigInt}}(ine)))
-end
-function Polyhedra.convexhull!(p::LRSPolyhedron{N}, ext::VRepresentation{N}) where N
-    updateext!(p, convexhull(getext(p), VRepresentation{N, Rational{BigInt}}(ext)))
 end
 function hrepiscomputed(p::LRSPolyhedron)
     !isnull(p.ine)
