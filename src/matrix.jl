@@ -127,7 +127,8 @@ Polyhedra.coefficienttype(::Type{LRSGeneratorMatrix{N}}) where {N} = Rational{Bi
 Polyhedra.coefficienttype(::LRSGeneratorMatrix) = Rational{BigInt}
 
 const LRSMatrix{N} = Union{LRSInequalityMatrix{N}, LRSGeneratorMatrix{N}}
-Polyhedra.arraytype(::Union{LRSMatrix, Type{<:LRSMatrix}}) = Vector{Rational{BigInt}}
+Polyhedra.hvectortype(::Union{LRSInequalityMatrix{N}, Type{<:LRSInequalityMatrix{N}}}) where N = Vector{Rational{BigInt}}
+Polyhedra.vvectortype(::Union{LRSGeneratorMatrix{N}, Type{<:LRSGeneratorMatrix{N}}}) where N = Vector{Rational{BigInt}}
 Polyhedra.coefficienttype(::Union{LRSMatrix, Type{<:LRSMatrix}}) = Rational{BigInt}
 
 function linset(matrix::LRSMatrix)

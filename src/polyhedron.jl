@@ -13,9 +13,9 @@ Polyhedra.similar_library(::LRSLibrary, ::FullDim, ::Type{T}) where T<:Union{Int
 Polyhedra.similar_library(::LRSLibrary, d::FullDim, ::Type{T}) where T = Polyhedra.default_library(d, T)
 
 mutable struct LRSPolyhedron{N} <: Polyhedron{N, Rational{BigInt}}
-    ine::Nullable{HRepresentation{N, Rational{BigInt}}}
+    ine::Nullable{LiftedHRepresentation{N, Rational{BigInt}, Matrix{Rational{BigInt}}}}
     inem::Nullable{LRSInequalityMatrix{N}}
-    ext::Nullable{VRepresentation{N, Rational{BigInt}}}
+    ext::Nullable{LiftedVRepresentation{N, Rational{BigInt}, Matrix{Rational{BigInt}}}}
     extm::Nullable{LRSGeneratorMatrix{N}}
     hlinearitydetected::Bool
     vlinearitydetected::Bool
@@ -46,7 +46,8 @@ Polyhedra.library(::LRSPolyhedron) = LRSLibrary()
 Polyhedra.default_solver(p::LRSPolyhedron) = p.solver
 Polyhedra.supportssolver(::Type{<:LRSPolyhedron}) = true
 
-Polyhedra.arraytype(::Union{LRSPolyhedron, Type{<:LRSPolyhedron}}) = Vector{Rational{BigInt}}
+Polyhedra.hvectortype(::Union{LRSPolyhedron{N}, Type{LRSPolyhedron{N}}}) where N = Polyhedra.hvectortype(LiftedHRepresentation{N, Rational{BigInt}, Matrix{Rational{BigInt}}})
+Polyhedra.vvectortype(::Union{LRSPolyhedron{N}, Type{LRSPolyhedron{N}}}) where N = Polyhedra.vvectortype(LiftedVRepresentation{N, Rational{BigInt}, Matrix{Rational{BigInt}}})
 Polyhedra.similar_type(::Type{<:LRSPolyhedron}, ::FullDim{N}, ::Type{Rational{BigInt}}) where N = LRSPolyhedron{N}
 Polyhedra.similar_type(::Type{<:LRSPolyhedron}, d::FullDim, ::Type{T}) where T = Polyhedra.default_type(d, T)
 
