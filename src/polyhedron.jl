@@ -1,60 +1,59 @@
-export LRSLibrary
 import MathProgBase
 const MPB = MathProgBase
 import JuMP
 
-struct LRSLibrary <: PolyhedraLibrary
+struct Library <: Polyhedra.Library
     solver::MPB.AbstractMathProgSolver
-    function LRSLibrary(solver=JuMP.UnsetSolver())
+    function Library(solver=JuMP.UnsetSolver())
         new(solver)
     end
 end
-Polyhedra.similar_library(::LRSLibrary, ::FullDim, ::Type{T}) where T<:Union{Integer,Rational} = LRSLibrary()
-Polyhedra.similar_library(::LRSLibrary, d::FullDim, ::Type{T}) where T = Polyhedra.default_library(d, T)
+Polyhedra.similar_library(::Library, ::Polyhedra.FullDim, ::Type{T}) where T<:Union{Integer,Rational} = Library()
+Polyhedra.similar_library(::Library, d::Polyhedra.FullDim, ::Type{T}) where T = Polyhedra.default_library(d, T)
 
-mutable struct LRSPolyhedron{N} <: Polyhedron{N, Rational{BigInt}}
-    ine::Nullable{LiftedHRepresentation{N, Rational{BigInt}, Matrix{Rational{BigInt}}}}
-    inem::Nullable{LRSInequalityMatrix{N}}
-    ext::Nullable{LiftedVRepresentation{N, Rational{BigInt}, Matrix{Rational{BigInt}}}}
-    extm::Nullable{LRSGeneratorMatrix{N}}
+mutable struct Polyhedron <: Polyhedra.Polyhedron{Rational{BigInt}}
+    ine::Union{Nothing, LiftedHRepresentation{Rational{BigInt}, Matrix{Rational{BigInt}}}}
+    inem::Union{Nothing, HMatrix}
+    ext::Union{Nothing, LiftedVRepresentation{Rational{BigInt}, Matrix{Rational{BigInt}}}}
+    extm::Union{Nothing, VMatrix}
     hlinearitydetected::Bool
     vlinearitydetected::Bool
     noredundantinequality::Bool
     noredundantgenerator::Bool
     solver::MPB.AbstractMathProgSolver
 
-    function LRSPolyhedron{N}(ine::HRepresentation{N, Rational{BigInt}}, ext::VRepresentation{N, Rational{BigInt}}, hld::Bool, vld::Bool, nri::Bool, nrg::Bool, solver::MPB.AbstractMathProgSolver) where N
-        new{N}(ine, nothing, ext, nothing, hld, vld, nri, nrg, solver)
+    function Polyhedron(ine::HRepresentation{Rational{BigInt}}, ext::VRepresentation{Rational{BigInt}}, hld::Bool, vld::Bool, nri::Bool, nrg::Bool, solver::MPB.AbstractMathProgSolver)
+        new(ine, nothing, ext, nothing, hld, vld, nri, nrg, solver)
     end
-    function LRSPolyhedron{N}(ine::HRepresentation{N, Rational{BigInt}}, ::Void, hld::Bool, vld::Bool, nri::Bool, nrg::Bool, solver::MPB.AbstractMathProgSolver) where N
-        new{N}(ine, nothing, nothing, nothing, hld, vld, nri, nrg, solver)
+    function Polyhedron(ine::HRepresentation{Rational{BigInt}}, ::Nothing, hld::Bool, vld::Bool, nri::Bool, nrg::Bool, solver::MPB.AbstractMathProgSolver)
+        new(ine, nothing, nothing, nothing, hld, vld, nri, nrg, solver)
     end
-    function LRSPolyhedron{N}(::Void, ext::VRepresentation{N, Rational{BigInt}}, hld::Bool, vld::Bool, nri::Bool, nrg::Bool, solver::MPB.AbstractMathProgSolver) where N
-        new{N}(nothing, nothing, ext, nothing, hld, vld, nri, nrg, solver)
+    function Polyhedron(::Nothing, ext::VRepresentation{Rational{BigInt}}, hld::Bool, vld::Bool, nri::Bool, nrg::Bool, solver::MPB.AbstractMathProgSolver)
+        new(nothing, nothing, ext, nothing, hld, vld, nri, nrg, solver)
     end
-    function LRSPolyhedron{N}(ine::HRepresentation{N, Rational{BigInt}}, solver::MPB.AbstractMathProgSolver) where N
-        new{N}(ine, nothing, nothing, nothing, false, false, false, false, solver)
+    function Polyhedron(ine::HRepresentation{Rational{BigInt}}, solver::MPB.AbstractMathProgSolver)
+        new(ine, nothing, nothing, nothing, false, false, false, false, solver)
     end
-    function LRSPolyhedron{N}(ext::VRepresentation{N, Rational{BigInt}}, solver::MPB.AbstractMathProgSolver) where N
-        new{N}(nothing, nothing, ext, nothing, false, false, false, false, solver)
+    function Polyhedron(ext::VRepresentation{Rational{BigInt}}, solver::MPB.AbstractMathProgSolver)
+        new(nothing, nothing, ext, nothing, false, false, false, false, solver)
     end
 end
-LRSPolyhedron{N}(h::HRepresentation{N}, solver::MPB.AbstractMathProgSolver) where N = LRSPolyhedron{N}(HRepresentation{N, Rational{BigInt}}(h), solver)
-LRSPolyhedron{N}(v::VRepresentation{N}, solver::MPB.AbstractMathProgSolver) where N = LRSPolyhedron{N}(VRepresentation{N, Rational{BigInt}}(v), solver)
+Polyhedron(h::HRepresentation, solver::MPB.AbstractMathProgSolver) = Polyhedron(HRepresentation{Rational{BigInt}}(h), solver)
+Polyhedron(v::VRepresentation, solver::MPB.AbstractMathProgSolver) = Polyhedron(VRepresentation{Rational{BigInt}}(v), solver)
 
-Polyhedra.library(::LRSPolyhedron) = LRSLibrary()
-Polyhedra.default_solver(p::LRSPolyhedron) = p.solver
-Polyhedra.supportssolver(::Type{<:LRSPolyhedron}) = true
+Polyhedra.library(::Polyhedron) = Library()
+Polyhedra.default_solver(p::Polyhedron) = p.solver
+Polyhedra.supportssolver(::Type{<:Polyhedron}) = true
 
-Polyhedra.hvectortype(::Union{LRSPolyhedron{N}, Type{LRSPolyhedron{N}}}) where N = Polyhedra.hvectortype(LiftedHRepresentation{N, Rational{BigInt}, Matrix{Rational{BigInt}}})
-Polyhedra.vvectortype(::Union{LRSPolyhedron{N}, Type{LRSPolyhedron{N}}}) where N = Polyhedra.vvectortype(LiftedVRepresentation{N, Rational{BigInt}, Matrix{Rational{BigInt}}})
-Polyhedra.similar_type(::Type{<:LRSPolyhedron}, ::FullDim{N}, ::Type{Rational{BigInt}}) where N = LRSPolyhedron{N}
-Polyhedra.similar_type(::Type{<:LRSPolyhedron}, d::FullDim, ::Type{T}) where T = Polyhedra.default_type(d, T)
+Polyhedra.hvectortype(::Union{Polyhedron, Type{Polyhedron}}) = Polyhedra.hvectortype(LiftedHRepresentation{Rational{BigInt}, Matrix{Rational{BigInt}}})
+Polyhedra.vvectortype(::Union{Polyhedron, Type{Polyhedron}}) = Polyhedra.vvectortype(LiftedVRepresentation{Rational{BigInt}, Matrix{Rational{BigInt}}})
+Polyhedra.similar_type(::Type{<:Polyhedron}, ::Polyhedra.FullDim, ::Type{Rational{BigInt}}) = Polyhedron
+Polyhedra.similar_type(::Type{<:Polyhedron}, d::Polyhedra.FullDim, ::Type{T}) where T = Polyhedra.default_type(d, T)
 
 # Helpers
-function getine(p::LRSPolyhedron)
-    if isnull(p.ine)
-        if !isnull(p.inem) && checkfreshness(get(p.inem), :Fresh)
+function getine(p::Polyhedron)
+    if p.ine === nothing
+        if p.inem !== nothing && checkfreshness(p.inem, :Fresh)
             p.ine = p.inem
         else
             p.ine = LiftedHRepresentation(getextm(p, :Fresh))
@@ -63,17 +62,17 @@ function getine(p::LRSPolyhedron)
             p.noredundantinequality = true
         end
     end
-    get(p.ine)
+    return p.ine
 end
-function getinem(p::LRSPolyhedron, fresh::Symbol=:AnyFreshness)
-    if isnull(p.inem) || !checkfreshness(get(p.inem), fresh)
-        p.inem = LRSMatrix(getine(p))
+function getinem(p::Polyhedron, fresh::Symbol=:AnyFreshness)
+    if p.inem === nothing || !checkfreshness(p.inem, fresh)
+        p.inem = RepMatrix(getine(p))
     end
-    get(p.inem)
+    return p.inem
 end
-function getext(p::LRSPolyhedron)
-    if isnull(p.ext)
-        if !isnull(p.extm) && checkfreshness(get(p.extm), :Fresh)
+function getext(p::Polyhedron)
+    if p.ext === nothing
+        if p.extm !== nothing && checkfreshness(p.extm, :Fresh)
             p.ext = p.extm
         else
             p.ext = LiftedVRepresentation(getinem(p, :Fresh))
@@ -82,16 +81,16 @@ function getext(p::LRSPolyhedron)
             p.noredundantgenerator = true
         end
     end
-    get(p.ext)
+    return p.ext
 end
-function getextm(p::LRSPolyhedron, fresh::Symbol=:AnyFreshness)
-    if isnull(p.extm) || !checkfreshness(get(p.extm), fresh)
-        p.extm = LRSMatrix(getext(p))
+function getextm(p::Polyhedron, fresh::Symbol=:AnyFreshness)
+    if p.extm === nothing || !checkfreshness(p.extm, fresh)
+        p.extm = RepMatrix(getext(p))
     end
-    get(p.extm)
+    return p.extm
 end
 
-function clearfield!(p::LRSPolyhedron)
+function clearfield!(p::Polyhedron)
     p.ine = nothing
     p.inem = nothing
     p.ext = nothing
@@ -101,51 +100,51 @@ function clearfield!(p::LRSPolyhedron)
     noredundantinequality = false
     noredundantgenerator = false
 end
-function Polyhedra.resethrep!(p::LRSPolyhedron{N}, h::HRepresentation{N, Rational{BigInt}}) where N
+function Polyhedra.resethrep!(p::Polyhedron, h::HRepresentation{Rational{BigInt}})
     clearfield!(p)
     p.ine = h
 end
-function Polyhedra.resetvrep!(p::LRSPolyhedron{N}, v::VRepresentation{N, Rational{BigInt}}) where N
+function Polyhedra.resetvrep!(p::Polyhedron, v::VRepresentation{Rational{BigInt}})
     clearfield!(p)
     p.ext = v
 end
 
 
 # Implementation of Polyhedron's mandatory interface
-polyhedron(rep::Representation{N}, lib::LRSLibrary) where N = LRSPolyhedron{N}(rep, lib.solver)
+polyhedron(rep::Representation, lib::Library) = Polyhedron(rep, lib.solver)
 
-function LRSPolyhedron{N}(hits::Polyhedra.HIt{N}...; solver=JuMP.UnsetSolver()) where N
-    LRSPolyhedron{N}(LRSInequalityMatrix{N}(hits...), solver)
+function Polyhedron(d::Polyhedra.FullDim, hits::Polyhedra.HIt...; solver=JuMP.UnsetSolver())
+    Polyhedron(HMatrix(d, hits...), solver)
 end
-function LRSPolyhedron{N}(vits::Polyhedra.VIt{N}...; solver=JuMP.UnsetSolver()) where N
-    LRSPolyhedron{N}(LRSGeneratorMatrix{N}(vits...), solver)
+function Polyhedron(d::Polyhedra.FullDim, vits::Polyhedra.VIt...; solver=JuMP.UnsetSolver())
+    Polyhedron(VMatrix(vits...), solver)
 end
 
-function Base.copy(p::LRSPolyhedron{N}) where N
+function Base.copy(p::Polyhedron)
     ine = nothing
-    if !isnull(p.ine)
-        ine = copy(get(p.ine))
+    if p.ine !== nothing
+        ine = copy(p.ine)
     end
     ext = nothing
-    if !isnull(p.ext)
-        ext = copy(get(p.ext))
+    if p.ext !== nothing
+        ext = copy(p.ext)
     end
-    LRSPolyhedron{N}(ine, ext, p.hlinearitydetected, p.vlinearitydetected, p.noredundantinequality, p.noredundantgenerator, p.solver)
+    Polyhedron(ine, ext, p.hlinearitydetected, p.vlinearitydetected, p.noredundantinequality, p.noredundantgenerator, p.solver)
 end
-function hrepiscomputed(p::LRSPolyhedron)
-    !isnull(p.ine)
+function hrepiscomputed(p::Polyhedron)
+    p.ine !== nothing
 end
-function hrep(p::LRSPolyhedron)
+function hrep(p::Polyhedron)
     getine(p)
 end
-function vrepiscomputed(p::LRSPolyhedron)
-    !isnull(p.ext)
+function vrepiscomputed(p::Polyhedron)
+    p.ext !== nothing
 end
-function vrep(p::LRSPolyhedron)
+function vrep(p::Polyhedron)
     getext(p)
 end
 #eliminate(p::Polyhedron, delset::IntSet)                     = error("not implemented")
-function detecthlinearity!(p::LRSPolyhedron)
+function detecthlinearity!(p::Polyhedron)
     if !p.hlinearitydetected
         getext(p)
         p.inem = nothing
@@ -154,7 +153,7 @@ function detecthlinearity!(p::LRSPolyhedron)
         # getine sets hlinearity as detected and no redundant ineq.
     end
 end
-function detectvlinearity!(p::LRSPolyhedron)
+function detectvlinearity!(p::Polyhedron)
     if !p.vlinearitydetected
         getine(p)
         p.extm = nothing
@@ -163,7 +162,7 @@ function detectvlinearity!(p::LRSPolyhedron)
         # getext sets vlinearity as detected and no redundant gen.
     end
 end
-function removehredundancy!(p::LRSPolyhedron)
+function removehredundancy!(p::Polyhedron)
     #if !p.noredundantinequality
     ine = getine(p)
     inem = getinem(p, :AlmostFresh) # FIXME does it need to be fresh ?
@@ -177,7 +176,7 @@ function removehredundancy!(p::LRSPolyhedron)
     p.noredundantinequality = true
     #end
 end
-function removevredundancy!(p::LRSPolyhedron)
+function removevredundancy!(p::Polyhedron)
     if !p.noredundantgenerator
         detectvlinearity!(p)
         ext = getext(p)
@@ -191,17 +190,17 @@ function removevredundancy!(p::LRSPolyhedron)
         p.noredundantgenerator = true
     end
 end
-#function getredundantinequalities(p::LRSPolyhedron)
+#function getredundantinequalities(p::Polyhedron)
 #  redund(getinem(p, :AlmostFresh))
 #end
-_getrepfor(p::LRSPolyhedron, ::Polyhedra.HIndex, status::Symbol) = getinem(p, status)
-_getrepfor(p::LRSPolyhedron, ::Polyhedra.VIndex, status::Symbol) = getextm(p, status)
-function isredundant(p::LRSPolyhedron, idx::Polyhedra.Index; strongly=false, cert=false, solver=Polyhedra.solver(p))
+_getrepfor(p::Polyhedron, ::Polyhedra.HIndex, status::Symbol) = getinem(p, status)
+_getrepfor(p::Polyhedron, ::Polyhedra.VIndex, status::Symbol) = getextm(p, status)
+function isredundant(p::Polyhedron, idx::Polyhedra.Index; strongly=false, cert=false, solver=Polyhedra.solver(p))
     @assert !strongly && !cert
     redundi(_getrepfor(p, idx, :AlmostFresh), idx.value) # FIXME does it need to be fresh ?
 end
 # Optional interface
-function Polyhedra.loadpolyhedron!(p::LRSPolyhedron, filename::AbstractString, ::Type{Val{:ext}})
+function Polyhedra.loadpolyhedron!(p::Polyhedron, filename::AbstractString, ::Type{Val{:ext}})
     clearfield!(p)
-    p.extm = LRSGeneratorMatrix(string(filename, ".ext"))
+    p.extm = VMatrix(string(filename, ".ext"))
 end

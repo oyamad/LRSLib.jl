@@ -1,6 +1,6 @@
-using LRSLib
+using Test
 using Polyhedra
-using Base.Test
+using LRSLib
 
 include("cube.jl")
 include("simplex.jl")

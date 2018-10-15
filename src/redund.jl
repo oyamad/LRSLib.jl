@@ -1,4 +1,4 @@
-function redund(m::LRSMatrix)
+function redund(m::RepMatrix)
     # if non-negative flag is set, non-negative constraints are not input
     # explicitly, and are not checked for redundancy
 
@@ -37,7 +37,7 @@ function redund(m::LRSMatrix)
     redset
 end
 
-function redundi(m::LRSMatrix, ineq::Int)
+function redundi(m::RepMatrix, ineq::Int)
     if m.status == :AtNoBasis
         getfirstbasis(m)
     end

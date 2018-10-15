@@ -1,7 +1,7 @@
 module LRSLib
 
 using BinDeps
-importall Polyhedra
+using Polyhedra
 
 if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
     include("../deps/deps.jl")

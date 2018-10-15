@@ -9,13 +9,13 @@
     linset = IntSet()
     V = [0 0; 0 1; 1 0]
 
-    function minitest(ine::LRSInequalityMatrix)
-        ine  = MixedMatHRep{2,Int}(ine)
-        @test sortrows([ine.b -ine.A]) == sortrows([b -A])
+    function minitest(ine::LRSLib.HMatrix)
+        ine  = convert(MixedMatHRep{Int}, ine)
+        @test sortrows([ine.b -ine.A]) == sortslices([b -A], dims=1)
         @test ine.linset == linset
     end
-    function minitest(ext::LRSGeneratorMatrix)
-        ext  = MixedMatVRep{2,Int}(ext)
+    function minitest(ext::LRSLib.VMatrix)
+        ext  = convert(MixedMatVRep{Int}, ext)
         @test sortrows(ext.V) == V
         @test length(ext.R) == 0
         @test ext.Rlinset == IntSet()
@@ -24,18 +24,18 @@
     ine = hrep(A, b, linset)
     ext = vrep(V)
 
-    inem1 = LRSInequalityMatrix("simplex.ine")
+    inem1 = LRSLib.HMatrix("simplex.ine")
     minitest(inem1)
-    extm1 = LRSGeneratorMatrix(inem1)
+    extm1 = convert(LRSLib.VMatrix, inem1)
     minitest(extm1)
 
-    inem2 = LRSMatrix(ine)
+    inem2 = LRSLib.RepMatrix(ine)
     minitest(inem2)
-    extm2 = LRSGeneratorMatrix(inem2)
+    extm2 = convert(LRSLib.VMatrix, inem2)
     minitest(extm2)
 
-    extm3 = LRSMatrix(ext)
+    extm3 = LRSLib.RepMatrix(ext)
     minitest(extm3)
-    inem3 = LRSInequalityMatrix(extm3)
+    inem3 = convert(LRSLib.HMatrix, extm3)
     minitest(inem3)
 end
