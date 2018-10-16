@@ -11,11 +11,6 @@ addons:
     - libgmp-dev
 notifications:
   email: false
-# script:
-#   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-#   - julia -e 'Pkg.clone(pwd()); Pkg.build("LRSLib"); Pkg.test("LRSLib"; coverage=true)'
-before_script:
-  - julia -e 'using Pkg; Pkg.add(PackageSpec(name="Polyhedra", rev="master"))'
 after_success:
   # push coverage results to Coveralls
   - julia -e 'cd(Pkg.dir("LRSLib")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(process_folder())'
