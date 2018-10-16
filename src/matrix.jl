@@ -246,7 +246,7 @@ end
 
 function extractrow(P::Clrs_dic, Q::Clrs_dat, N, i, offset)
     #d = Q.n-offset-1 # FIXME when it is modified...
-    a = Vector{Rational{BigInt}}(N+1)
+    a = Vector{Rational{BigInt}}(undef, N+1)
     gcd = extractbigintat(Q.Gcd, 1+i) # first row is the objective
     lcm = extractbigintat(Q.Lcm, 1+i)
     row = unsafe_load(P.A, 1+i)
@@ -297,7 +297,7 @@ function isininputlinset(Q::Clrs_dat, j)
 end
 
 function extractinputlinset(Q::Clrs_dat)
-    linset = IntSet([])
+    linset = BitSet([])
     for i in 1:Q.nlinearity
         push!(linset, unsafe_load(Q.linearity, i))
     end
@@ -307,7 +307,7 @@ end
 function extractoutputlinset(Q::Clrs_dat)
     k = (Q.hull == Clrs_true && Q.homogeneous == Clrs_true) ? 1 : 0
     nredundcol = Q.nredundcol
-    IntSet(1:(nredundcol-k))
+    BitSet(1:(nredundcol-k))
 end
 
 # FIXME The only think that is done is that the linearities given that were redundant have been
@@ -330,7 +330,7 @@ end
 
 function convertoutput(x::Clrs_mp_vector, n, hull)
     first = extractbigintat(x, 1)
-    rest = Vector{BigInt}(n-1)
+    rest = Vector{BigInt}(undef, n-1)
     for i = 2:n
         rest[i-1] = extractbigintat(x, i)
     end
@@ -343,7 +343,7 @@ end
 
 function getmat(lin::LRSLinearitySpace)
     startcol = lin.hull && lin.homogeneous ? 2 : 1 # col zero not treated as redundant
-    A = Matrix{BigInt}(lin.nlin-startcol+1, lin.n)
+    A = Matrix{BigInt}(undef, lin.nlin-startcol+1, lin.n)
     for col in startcol:lin.nlin # print linearity space */
         A[col-startcol+1,:] = convertoutput(unsafe_load(lin.Lin, col), lin.n, lin.hull)
     end

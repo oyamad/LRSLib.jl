@@ -41,6 +41,7 @@ end
 Polyhedron(h::HRepresentation, solver::MPB.AbstractMathProgSolver) = Polyhedron(HRepresentation{Rational{BigInt}}(h), solver)
 Polyhedron(v::VRepresentation, solver::MPB.AbstractMathProgSolver) = Polyhedron(VRepresentation{Rational{BigInt}}(v), solver)
 
+Polyhedra.FullDim(p::Polyhedron) = Polyhedra.FullDim_rep(p.ine, p.inem, p.ext, p.extm)
 Polyhedra.library(::Polyhedron) = Library()
 Polyhedra.default_solver(p::Polyhedron) = p.solver
 Polyhedra.supportssolver(::Type{<:Polyhedron}) = true
@@ -111,13 +112,13 @@ end
 
 
 # Implementation of Polyhedron's mandatory interface
-polyhedron(rep::Representation, lib::Library) = Polyhedron(rep, lib.solver)
+Polyhedra.polyhedron(rep::Representation, lib::Library) = Polyhedron(rep, lib.solver)
 
 function Polyhedron(d::Polyhedra.FullDim, hits::Polyhedra.HIt...; solver=JuMP.UnsetSolver())
     Polyhedron(HMatrix(d, hits...), solver)
 end
 function Polyhedron(d::Polyhedra.FullDim, vits::Polyhedra.VIt...; solver=JuMP.UnsetSolver())
-    Polyhedron(VMatrix(vits...), solver)
+    Polyhedron(VMatrix(d, vits...), solver)
 end
 
 function Base.copy(p::Polyhedron)
@@ -131,20 +132,20 @@ function Base.copy(p::Polyhedron)
     end
     Polyhedron(ine, ext, p.hlinearitydetected, p.vlinearitydetected, p.noredundantinequality, p.noredundantgenerator, p.solver)
 end
-function hrepiscomputed(p::Polyhedron)
+function Polyhedra.hrepiscomputed(p::Polyhedron)
     p.ine !== nothing
 end
-function hrep(p::Polyhedron)
+function Polyhedra.hrep(p::Polyhedron)
     getine(p)
 end
-function vrepiscomputed(p::Polyhedron)
+function Polyhedra.vrepiscomputed(p::Polyhedron)
     p.ext !== nothing
 end
-function vrep(p::Polyhedron)
+function Polyhedra.vrep(p::Polyhedron)
     getext(p)
 end
-#eliminate(p::Polyhedron, delset::IntSet)                     = error("not implemented")
-function detecthlinearity!(p::Polyhedron)
+#eliminate(p::Polyhedron, delset::BitSet)                     = error("not implemented")
+function Polyhedra.detecthlinearity!(p::Polyhedron)
     if !p.hlinearitydetected
         getext(p)
         p.inem = nothing
@@ -153,7 +154,7 @@ function detecthlinearity!(p::Polyhedron)
         # getine sets hlinearity as detected and no redundant ineq.
     end
 end
-function detectvlinearity!(p::Polyhedron)
+function Polyhedra.detectvlinearity!(p::Polyhedron)
     if !p.vlinearitydetected
         getine(p)
         p.extm = nothing
@@ -162,31 +163,31 @@ function detectvlinearity!(p::Polyhedron)
         # getext sets vlinearity as detected and no redundant gen.
     end
 end
-function removehredundancy!(p::Polyhedron)
+function Polyhedra.removehredundancy!(p::Polyhedron)
     #if !p.noredundantinequality
     ine = getine(p)
     inem = getinem(p, :AlmostFresh) # FIXME does it need to be fresh ?
     linset = getinputlinsubset(inem)
     redset = redund(inem)
-    nonred = setdiff(IntSet(1:size(ine.A, 1)), redset)
+    nonred = setdiff(BitSet(1:size(ine.A, 1)), redset)
     nonred = collect(setdiff(nonred, linset))
     lin = collect(linset)
     ine.A = [ine.A[lin,:]; ine.A[nonred,:]]
-    ine.linset = IntSet(1:length(linset))
+    ine.linset = BitSet(1:length(linset))
     p.noredundantinequality = true
     #end
 end
-function removevredundancy!(p::Polyhedron)
+function Polyhedra.removevredundancy!(p::Polyhedron)
     if !p.noredundantgenerator
         detectvlinearity!(p)
         ext = getext(p)
         extm = getextm(p, :AlmostFresh) # FIXME does it need to be fresh ?
         redset = redund(extm)
-        nonred = setdiff(IntSet(1:size(ext.R, 1)), redset)
+        nonred = setdiff(BitSet(1:size(ext.R, 1)), redset)
         nonred = collect(setdiff(nonred, ext.linset))
         lin = collect(ext.linset)
         ext.R = [ext.R[lin,:]; ext.R[nonred,:]]
-        ext.linset = IntSet(1:length(ext.linset))
+        ext.linset = BitSet(1:length(ext.linset))
         p.noredundantgenerator = true
     end
 end
@@ -195,7 +196,7 @@ end
 #end
 _getrepfor(p::Polyhedron, ::Polyhedra.HIndex, status::Symbol) = getinem(p, status)
 _getrepfor(p::Polyhedron, ::Polyhedra.VIndex, status::Symbol) = getextm(p, status)
-function isredundant(p::Polyhedron, idx::Polyhedra.Index; strongly=false, cert=false, solver=Polyhedra.solver(p))
+function Polyhedra.isredundant(p::Polyhedron, idx::Polyhedra.Index; strongly=false, cert=false, solver=Polyhedra.solver(p))
     @assert !strongly && !cert
     redundi(_getrepfor(p, idx, :AlmostFresh), idx.value) # FIXME does it need to be fresh ?
 end

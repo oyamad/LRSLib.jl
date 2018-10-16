@@ -25,7 +25,7 @@ function redund(m::RepMatrix)
     # rows 0..lastdv are cost, decision variables, or linearities
     # other rows need to be tested
 
-    redset = IntSet([])
+    redset = BitSet()
     for index in (lastdv + 1):(m_A + d)
         ineq = unsafe_load(unsafe_load(m.Q).inequality, index - lastdv + 1) # the input inequality number corr. to this index
 

@@ -1,24 +1,24 @@
 @testset "Test representation conversion with the simplex" begin
     # A = [1 1; -1 0; 0 -1]
     # b = [1, 0, 0]
-    # linset = IntSet([1])
+    # linset = BitSet([1])
     # V = [0 1; 1 0]
 
     A = [1 1; -1 0; 0 -1]
     b = [1, 0, 0]
-    linset = IntSet()
+    linset = BitSet()
     V = [0 0; 0 1; 1 0]
 
     function minitest(ine::LRSLib.HMatrix)
-        ine  = convert(MixedMatHRep{Int}, ine)
-        @test sortrows([ine.b -ine.A]) == sortslices([b -A], dims=1)
+        ine  = MixedMatHRep{Int}(ine)
+        @test sortslices([ine.b -ine.A], dims=1) == sortslices([b -A], dims=1)
         @test ine.linset == linset
     end
     function minitest(ext::LRSLib.VMatrix)
-        ext  = convert(MixedMatVRep{Int}, ext)
-        @test sortrows(ext.V) == V
+        ext  = MixedMatVRep{Int}(ext)
+        @test sortslices(ext.V, dims=1) == V
         @test length(ext.R) == 0
-        @test ext.Rlinset == IntSet()
+        @test ext.Rlinset == BitSet()
     end
 
     ine = hrep(A, b, linset)

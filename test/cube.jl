@@ -4,7 +4,7 @@
     ine = hrep(A, b)
     inem1 = LRSLib.RepMatrix(ine)
     #setdebug(poly1, true)
-    ine1  = convert(MixedMatHRep{Int}, inem1)
+    ine1  = MixedMatHRep{Int}(inem1)
     @test ine.A == ine1.A
     @test ine.b == ine1.b
     @test ine.linset == ine1.linset

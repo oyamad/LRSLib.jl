@@ -38,7 +38,7 @@ function generatorproducer(m::RepMatrix)
     end
 end
 function enumtomat(m::RepMatrix)
-    M = Matrix{Rational{BigInt}}(0, fulldim(m)+1)
+    M = Matrix{Rational{BigInt}}(undef, 0, fulldim(m)+1)
     for output in generatorproducer(m)
         M = [M; output']
     end
@@ -65,13 +65,13 @@ function Base.convert(::Type{HMatrix}, m::VMatrix)
     linset = getoutputlinset(m)
     M = enumtomat(m)
     (P, Q) = initmatrix(M, linset, true)
-    HMatrix(P, Q)
+    HMatrix(fulldim(m), P, Q)
 end
 HMatrix(m::VMatrix) = HMatrix(m)
 function Base.convert(::Type{VMatrix}, m::HMatrix)
     linset = getoutputlinset(m)
     M = enumtomat(m)
     (P, Q) = initmatrix(M, linset, false)
-    VMatrix(P, Q)
+    VMatrix(fulldim(m), P, Q)
 end
 VMatrix(m::HMatrix) = VMatrix(m)
