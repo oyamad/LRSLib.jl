@@ -1,5 +1,5 @@
 export enumtomat, generatorproducer
-function generatorproducer(m::LRSMatrix)
+function generatorproducer(m::RepMatrix)
     Channel() do c
         # code from here is borrowed from lrs_main
         if !(m.status in [:AtNoBasis, :AtFirstBasis, :Empty])
@@ -10,8 +10,8 @@ function generatorproducer(m::LRSMatrix)
         if m.status == :AtNoBasis
             getfirstbasis(m)
         end
-        if !isnull(m.lin) # FIXME should I do that if m.status is :Empty ?
-            L = getmat(get(m.lin))
+        if m.lin !== nothing # FIXME should I do that if m.status is :Empty ?
+            L = getmat(m.lin)
             for i in 1:size(L, 1)
                 put!(c, L[i, :])
             end
@@ -37,41 +37,41 @@ function generatorproducer(m::LRSMatrix)
         end
     end
 end
-function enumtomat(m::LRSMatrix{N}) where N
-    M = Matrix{Rational{BigInt}}(0, N+1)
+function enumtomat(m::RepMatrix)
+    M = Matrix{Rational{BigInt}}(undef, 0, fulldim(m)+1)
     for output in generatorproducer(m)
         M = [M; output']
     end
     M
 end
 
-function Base.convert(::Type{LiftedHRepresentation{N, Rational{BigInt}}}, m::LRSGeneratorMatrix{N}) where N
+function Base.convert(::Type{LiftedHRepresentation{Rational{BigInt}}}, m::VMatrix)
     linset = getoutputlinset(m)
     A = enumtomat(m)
-    LiftedHRepresentation{N, Rational{BigInt}}(A, linset)
+    LiftedHRepresentation{Rational{BigInt}}(A, linset)
 end
-HRepresentation(m::LRSGeneratorMatrix{N}) where {N} = Base.convert(LiftedHRepresentation{N, Rational{BigInt}}, m)
-LiftedHRepresentation(m::LRSGeneratorMatrix{N}) where {N} = Base.convert(LiftedHRepresentation{N, Rational{BigInt}}, m)
+HRepresentation(m::VMatrix) = Base.convert(LiftedHRepresentation{Rational{BigInt}}, m)
+LiftedHRepresentation(m::VMatrix) = Base.convert(LiftedHRepresentation{Rational{BigInt}}, m)
 
-function Base.convert(::Type{LiftedVRepresentation{N, Rational{BigInt}}}, m::LRSInequalityMatrix{N}) where N
+function Base.convert(::Type{LiftedVRepresentation{Rational{BigInt}}}, m::HMatrix)
     linset = getoutputlinset(m)
     R = enumtomat(m)
-    LiftedVRepresentation{N, Rational{BigInt}}(R, linset)
+    LiftedVRepresentation{Rational{BigInt}}(R, linset)
 end
-VRepresentation(m::LRSInequalityMatrix{N}) where {N} = Base.convert(LiftedVRepresentation{N, Rational{BigInt}}, m)
-LiftedVRepresentation(m::LRSInequalityMatrix{N}) where {N} = Base.convert(LiftedVRepresentation{N, Rational{BigInt}}, m)
+VRepresentation(m::HMatrix) = Base.convert(LiftedVRepresentation{Rational{BigInt}}, m)
+LiftedVRepresentation(m::HMatrix) = Base.convert(LiftedVRepresentation{Rational{BigInt}}, m)
 
-function Base.convert(::Type{LRSInequalityMatrix{N}}, m::LRSGeneratorMatrix{N}) where N
+function Base.convert(::Type{HMatrix}, m::VMatrix)
     linset = getoutputlinset(m)
     M = enumtomat(m)
     (P, Q) = initmatrix(M, linset, true)
-    LRSInequalityMatrix{N}(P, Q)
+    HMatrix(fulldim(m), P, Q)
 end
-LRSInequalityMatrix(m::LRSGeneratorMatrix{N}) where {N} = LRSInequalityMatrix{N}(m)
-function Base.convert(::Type{LRSGeneratorMatrix{N}}, m::LRSInequalityMatrix{N}) where N
+HMatrix(m::VMatrix) = HMatrix(m)
+function Base.convert(::Type{VMatrix}, m::HMatrix)
     linset = getoutputlinset(m)
     M = enumtomat(m)
     (P, Q) = initmatrix(M, linset, false)
-    LRSGeneratorMatrix{N}(P, Q)
+    VMatrix(fulldim(m), P, Q)
 end
-LRSGeneratorMatrix(m::LRSInequalityMatrix{N}) where {N} = LRSGeneratorMatrix{N}(m)
+VMatrix(m::HMatrix) = VMatrix(m)

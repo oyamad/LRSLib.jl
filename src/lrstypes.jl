@@ -16,7 +16,7 @@ primitive type Clrs_fname 800 end
 
 function extractbigintat(array::Clrs_mp_vector, i::Int)
     tmp = BigInt()
-    ccall((:__gmpz_set, :libgmp), Void, (Ptr{BigInt}, Ptr{BigInt}), pointer_from_objref(tmp), array + (i-1) * sizeof(GMPInteger))
+    ccall((:__gmpz_set, :libgmp), Nothing, (Ptr{BigInt}, Ptr{BigInt}), pointer_from_objref(tmp), array + (i-1) * sizeof(GMPInteger))
     tmp
 end
 

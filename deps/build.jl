@@ -1,4 +1,5 @@
 using BinDeps
+using Libdl
 
 @BinDeps.setup
 
@@ -19,7 +20,7 @@ official_repo = "http://cgm.cs.mcgill.ca/~avis/C/lrslib/archive/$lrsname.tar.gz"
 forked_repo = "https://github.com/blegat/lrslib/archive/$lrslib_commit.zip"
 
 #GMP
-@static if is_linux()
+@static if Sys.islinux()
     const has_apt = try success(`apt-get -v`) catch e false end
     const has_yum = try success(`yum --version`) catch e false end
     const has_pacman = try success(`pacman -Qq`) catch e false end
@@ -48,7 +49,7 @@ lrslibdir = joinpath(lrsprefixdir, "lib")
 
 targetdirs = AbstractString["liblrsgmp.$(Libdl.dlext)"]
 
-@static if is_apple()
+@static if Sys.isapple()
     using Homebrew
     Homebrew.add("gmp")
     homebrew_includedir = joinpath(Homebrew.brew_prefix, "include")
@@ -86,4 +87,4 @@ else
              end),liblrs)
 end
 
-@BinDeps.install Dict(:liblrs => :liblrs)
+BinDeps.@install Dict(:liblrs => :liblrs)
