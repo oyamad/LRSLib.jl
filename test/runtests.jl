@@ -6,3 +6,4 @@ include("cube.jl")
 include("simplex.jl")
 
 include("polyhedron.jl")
+include("lp.jl")
