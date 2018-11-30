@@ -20,6 +20,12 @@ function extractbigintat(array::Clrs_mp_vector, i::Int)
     tmp
 end
 
+function extractbigint(a::Clrs_mp)
+    tmp = BigInt()
+    ccall((:__gmpz_set, :libgmp), Cvoid, (Ptr{BigInt}, Ref{Clrs_mp}), pointer_from_objref(tmp), a)
+    tmp
+end
+
 mutable struct Clrs_dic  # dynamic dictionary data
     A::Clrs_mp_matrix
     m::Clong           # A has m+1 rows, row 0 is cost row
@@ -155,3 +161,14 @@ mutable struct Clrs_dat      # global problem data
     Qhead::Ptr{Clrs_dic}
     Qtail::Ptr{Clrs_dic}
 end
+
+
+# Utility function
+
+function unsafe_field_store!(p::Ptr{T}, name::Symbol, x, err::Bool=true) where T
+    i = Base.fieldindex(T, name, err)
+    offset = fieldoffset(T, i)
+    unsafe_store!(convert(Ptr{UInt}, p + offset), x)
+    return p
+end
+
