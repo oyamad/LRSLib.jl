@@ -26,10 +26,10 @@ setobj(m::HMatrix, c::Vector{<:Real}, maximize::Bool) =
     setobj(m.P, m.Q, c, maximize)
 
 @doc """
-    setobj(m::HMatrix, c::Vector{<:Real}, maximize::Boo)
+    setobj(m::HMatrix, c::Vector{<:Union{Rational,Integer}}, maximize::Bool)
 
 Set the objective function vector `c` for `m`. Set `maximize` to true (false,
-resp.) if the objective is to be maximized (minimized, resp.).
+resp.) if the objective function is to be maximized (minimized, resp.).
 """ setobj
 
 
