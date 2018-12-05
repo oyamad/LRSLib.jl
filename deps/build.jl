@@ -49,42 +49,37 @@ lrslibdir = joinpath(lrsprefixdir, "lib")
 
 targetdirs = AbstractString["liblrsgmp.$(Libdl.dlext)"]
 
+patchdir = BinDeps.depsdir(liblrs)
+
 @static if Sys.isapple()
     using Homebrew
     Homebrew.add("gmp")
-    homebrew_includedir = joinpath(Homebrew.brew_prefix, "include")
-    homebrew_libdir = joinpath(Homebrew.brew_prefix, "lib")
-    patchdir = BinDeps.depsdir(liblrs)
-    provides(BuildProcess,
-             (@build_steps begin
-              GetSources(liblrs)
-              CreateDirectory(lrsprefixdir)
-              CreateDirectory(lrslibdir)
-              @build_steps begin
-              ChangeDirectory(lrssrcdir)
-              FileRule(joinpath(lrslibdir,"liblrsgmp.$(Libdl.dlext)"),@build_steps begin
-                       pipeline(`cat $patchdir/makefile.osx.patch`, `patch`)
-                       pipeline(`patch -p1`, stdin="../../quiet.diff")
-                       `make all-shared SONAME=liblrsgmp.$(Libdl.dlext).0 SHLIB=liblrsgmp.$(Libdl.dlext).0 SHLINK=liblrsgmp.$(Libdl.dlext) INCLUDEDIR=$homebrew_includedir LIBDIR=$homebrew_libdir`
-                       `cp liblrsgmp.$(Libdl.dlext) $lrslibdir/liblrsgmp.$(Libdl.dlext)`
-                       end)
-              end
-             end),liblrs)
-else
-    provides(BuildProcess,
-             (@build_steps begin
-              GetSources(liblrs)
-              CreateDirectory(lrsprefixdir)
-              CreateDirectory(lrslibdir)
-              @build_steps begin
-              ChangeDirectory(lrssrcdir)
-              FileRule(joinpath(lrslibdir,"liblrsgmp.$(Libdl.dlext)"),@build_steps begin
-                       pipeline(`patch -p1`, stdin="../../quiet.diff")
-                       `make all-shared`
-                       `cp liblrsgmp.$(Libdl.dlext) $lrslibdir/liblrsgmp.$(Libdl.dlext)`
-                       end)
-              end
-             end),liblrs)
+    global homebrew_includedir = joinpath(Homebrew.brew_prefix, "include")
+    global homebrew_libdir = joinpath(Homebrew.brew_prefix, "lib")
 end
+
+provides(BuildProcess,
+    (@build_steps begin
+        GetSources(liblrs)
+        CreateDirectory(lrsprefixdir)
+        CreateDirectory(lrslibdir)
+        @build_steps begin
+            ChangeDirectory(lrssrcdir)
+            FileRule(joinpath(lrslibdir,"liblrsgmp.$(Libdl.dlext)"),@build_steps begin
+                pipeline(`patch -p1`, stdin="../../quiet.diff")
+                @static if Sys.isapple()
+                    @build_steps begin
+                        pipeline(`cat $patchdir/makefile.osx.patch`, `patch`)
+                        `make all-shared SONAME=liblrsgmp.$(Libdl.dlext).0 SHLIB=liblrsgmp.$(Libdl.dlext).0 SHLINK=liblrsgmp.$(Libdl.dlext) INCLUDEDIR=$homebrew_includedir LIBDIR=$homebrew_libdir`
+                    end
+                else
+                    @build_steps begin
+                        `make all-shared`
+                    end
+                end
+                `cp liblrsgmp.$(Libdl.dlext) $lrslibdir/liblrsgmp.$(Libdl.dlext)`
+            end)
+        end
+    end),liblrs)
 
 BinDeps.@install Dict(:liblrs => :liblrs)
