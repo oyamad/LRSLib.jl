@@ -6,6 +6,7 @@ using Libdl
 lrslib_commit = "d8b723a2c315614979a8354f9e768d273d14a215"
 #lrsname = "lrslib-061"
 lrsname = "lrslib-$lrslib_commit"
+lrsnashname = "lrsnashlib-$lrslib_commit"
 lrslibname = "liblrs"
 
 # julia installs libgmp10 but not libgmp-dev since it
@@ -16,6 +17,7 @@ lrslibname = "liblrs"
 #       it does not have the headers
 #libgmpdev = library_dependency("libgmp-dev", aliases=["libgmp"])
 liblrs = library_dependency("liblrs", aliases=[lrsname, "liblrsgmp"])#, depends=[libgmpdev])
+liblrsnash = library_dependency("liblrsnash", aliases=[lrsnashname, "liblrsnashgmp"])
 
 official_repo = "http://cgm.cs.mcgill.ca/~avis/C/lrslib/archive/$lrsname.tar.gz"
 forked_repo = "https://github.com/JuliaPolyhedra/lrslib/archive/$lrslib_commit.zip"
@@ -49,13 +51,13 @@ lrsprefixdir = joinpath(BinDeps.usrdir(liblrs))
 lrslibdir = joinpath(lrsprefixdir, "lib")
 
 targetdirs = AbstractString["$lrslibname.$(Libdl.dlext)"]
+patchdir = BinDeps.depsdir(liblrs)
 
 @static if Sys.isapple()
     using Homebrew
     Homebrew.add("gmp")
     homebrew_includedir = joinpath(Homebrew.brew_prefix, "include")
     homebrew_libdir = joinpath(Homebrew.brew_prefix, "lib")
-    patchdir = BinDeps.depsdir(liblrs)
     provides(BuildProcess,
              (@build_steps begin
               GetSources(liblrs)
@@ -70,6 +72,15 @@ targetdirs = AbstractString["$lrslibname.$(Libdl.dlext)"]
                        end)
               end
              end),liblrs)
+    provides(BuildProcess,
+             (@build_steps begin
+              ChangeDirectory(lrssrcdir)
+              FileRule(joinpath(lrslibdir,"liblrsnash.$(Libdl.dlext)"),@build_steps begin
+                       `cp $patchdir/makefile.liblrsnash $lrssrcdir`
+                       `make -f makefile.liblrsnash SHLIB=liblrsnash.$(Libdl.dlext) LIBLRSDIR=$lrslibdir INCLUDEDIR=$homebrew_includedir LIBDIR=$homebrew_libdir`
+                       `cp liblrsnash.$(Libdl.dlext) $lrslibdir/liblrsnash.$(Libdl.dlext)`
+                       end)
+             end),liblrsnash)
 else
     provides(BuildProcess,
              (@build_steps begin
@@ -84,6 +95,16 @@ else
                        end)
               end
              end),liblrs)
+    provides(BuildProcess,
+             (@build_steps begin
+              ChangeDirectory(lrssrcdir)
+              FileRule(joinpath(lrslibdir,"liblrsnash.$(Libdl.dlext)"),@build_steps begin
+                       `cp $patchdir/makefile.liblrsnash $lrssrcdir`
+                       `make -f makefile.liblrsnash SHLIB=liblrsnash.$(Libdl.dlext) LIBLRSDIR=$lrslibdir`
+                       `cp liblrsnash.$(Libdl.dlext) $lrslibdir/liblrsnash.$(Libdl.dlext)`
+                       end)
+             end),liblrsnash)
 end
 
-BinDeps.@install Dict(:liblrs => :liblrs)
+BinDeps.@install Dict([(:liblrs, :liblrs),
+                       (:liblrsnash, :liblrsnash)])
