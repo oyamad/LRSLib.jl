@@ -398,18 +398,20 @@ function getnextbasis(m::RepMatrix)
     found
 end
 
-function getsolution(m::RepMatrix, col::Int)
-    Q = unsafe_load(m.Q)
-    output = @lrs_ccall alloc_mp_vector Clrs_mp_vector (Clong,) Q.n
-    found = Clrs_true == (@lrs_ccall getsolution Clong (Ptr{Clrs_dic}, Ptr{Clrs_dat}, Clrs_mp_vector, Clong) m.P m.Q output col)
+function getsolution(P::Ptr{Clrs_dic}, Q::Ptr{Clrs_dat}, col::Int)
+    n = unsafe_load(Q).n
+    output = @lrs_ccall alloc_mp_vector Clrs_mp_vector (Clong,) n
+    found = Clrs_true == (@lrs_ccall getsolution Clong (Ptr{Clrs_dic}, Ptr{Clrs_dat}, Clrs_mp_vector, Clong) P Q output col)
     if found
-        out = convertoutput(output, Q.n, Q.hull == Clrs_true)
+        out = convertoutput(output, n, unsafe_load(Q).hull == Clrs_true)
     else
         out = nothing
     end
-    @lrs_ccall clear_mp_vector Nothing (Clrs_mp_vector, Clong) output Q.n
+    @lrs_ccall clear_mp_vector Nothing (Clrs_mp_vector, Clong) output n
     out
 end
+
+getsolution(m::RepMatrix, col::Int) = getsolution(m.P, m.Q, col)
 
 function checkindex(m::RepMatrix, index::Int)
     if m.status == :AtNoBasis
