@@ -256,9 +256,9 @@ function readgame(filename::AbstractString)
     read_error_msg = "Premature end of input file '$(filename)'."
     num_entries < 2 && error(read_error_msg)
 
-    nr, nc = parse.(Int, entries[1:2])
+    nr::Int, nc::Int = parse.(Int, entries[1:2])
     num_entries < 2 + (nr*nc)*2 && error(read_error_msg)
-    payoff_matrices =
+    payoff_matrices::NTuple{2,Vector{Rational{BigInt}}} =
         ntuple(i -> Vector{Rational{BigInt}}(undef, nr*nc), Val(2))
 
     i = 3
