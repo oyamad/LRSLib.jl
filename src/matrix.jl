@@ -94,6 +94,7 @@ mutable struct HMatrix <: Polyhedra.MixedHRep{Rational{BigInt}}
     status::Symbol
     lin::Union{Nothing, LRSLinearitySpace}
     function HMatrix(N::Int, P::Ptr{Clrs_dic}, Q::Ptr{Clrs_dat})
+        @assert N == getd(P)
         m = new(N, P, Q, :AtNoBasis, nothing)
         finalizer(myfree, m)
         m
@@ -109,6 +110,7 @@ mutable struct VMatrix <: Polyhedra.MixedVRep{Rational{BigInt}}
     lin::Union{Nothing, LRSLinearitySpace}
     cone::Bool # If true, LRS will not return any point so we need to add the origin
     function VMatrix(N::Int, P::Ptr{Clrs_dic}, Q::Ptr{Clrs_dat})
+        @assert N + 1 == getd(P)
         m = _length(P)
         cone = !iszero(m) # If there is no ray and no point, it is empty so we should not add the origin
         for i in 1:m
@@ -217,12 +219,15 @@ function Base.isvalid(vrep::VMatrix, idx::Polyhedra.VIndex{Rational{BigInt}})
     0 < idx.value <= length(vrep) && isl == islin(idx) && isp == ispoint(idx)
 end
 
-#I should also remove linearity (should I remove one if hull && homogeneous ?)
-#getd(m::HMatrix) = m.N
-#getd(m::VMatrix) = m.N+1
-#Let's do it the easy way
-getd(m::HMatrix) = unsafe_load(m.P).d
-getd(m::VMatrix) = unsafe_load(m.P).d
+getd(P::Ptr{Clrs_dic}) = unsafe_load(P).d
+
+# `P.d` may be modified, e.g. by `getfirstbasis` so it may be different to `m.N`
+getd(m::HMatrix) = getd(m.P)
+# For the same reason, it might be different to `m.N + 1`
+getd(m::VMatrix) = getd(m.P)
+
+# FIXME the difference between getd and `m.N (+ 1)` is for removing linearity.
+#       Wouldn't it work if I do `-1` when hull && homogeneous ?
 
 function setrow(P::Ptr{Clrs_dic}, Q::Ptr{Clrs_dat}, i::Int, row::Vector{Rational{BigInt}}, ineq::Bool)
     num = map(x -> GMPInteger(x.num.alloc, x.num.size, x.num.d), row)
