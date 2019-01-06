@@ -6,5 +6,6 @@ include("test_init.jl")
 include("cube.jl")
 include("simplex.jl")
 
+include("matrix.jl")
 include("polyhedron.jl")
 include("lp.jl")
