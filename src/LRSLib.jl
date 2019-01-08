@@ -26,8 +26,10 @@ end
 
 include("lrstypes.jl")
 
-if Clrs_false == (@lrs_ccall init Clong (Ptr{Cchar},) C_NULL)
-    error("Initialization of LRS failed")
+function __init__()
+    if Clrs_false == (@lrs_ccall init Clong (Ptr{Cchar},) C_NULL)
+        error("Initialization of LRS failed")
+    end
 end
 
 include("matrix.jl")
