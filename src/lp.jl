@@ -33,14 +33,12 @@ resp.) if the objective function is to be maximized (minimized, resp.).
 """ setobj
 
 
-# ccall to `lrs_solve_lp` with init and close
+# ccall to `lrs_solve_lp`
 function lrs_solve_lp(P::Ptr{Clrs_dic}, Q::Ptr{Clrs_dat})
-    @lrs_ccall init Clong (Ptr{Cchar},) C_NULL
     found = (
         Clrs_true ==
         @lrs_ccall solve_lp Clong (Ptr{Clrs_dic}, Ptr{Clrs_dat}) P Q
     )
-    @lrs_ccall close Cvoid (Ptr{Cchar},) "lp:"
     found
 end
 
