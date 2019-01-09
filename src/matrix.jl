@@ -19,6 +19,12 @@ function initmatrix(filename::AbstractString)
     if !ok
         error("Invalid file $filename")
     end
+
+    # From lrs_close
+    ccall(:printf, Cint, (Ptr{Cchar},), "\n")
+    lrs_ifp = unsafe_load(cglobal((:lrs_ifp, liblrs), Ptr{Cvoid}))
+    ccall(:fclose, Cint, (Ptr{Cvoid},), lrs_ifp)
+
     (P,Q)
 end
 

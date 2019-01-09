@@ -33,14 +33,12 @@ resp.) if the objective function is to be maximized (minimized, resp.).
 """ setobj
 
 
-# ccall to `lrs_solve_lp` with init and close
+# ccall to `lrs_solve_lp`
 function lrs_solve_lp(P::Ptr{Clrs_dic}, Q::Ptr{Clrs_dat})
-    @lrs_ccall init Clong (Ptr{Cchar},) C_NULL
     found = (
         Clrs_true ==
         @lrs_ccall solve_lp Clong (Ptr{Clrs_dic}, Ptr{Clrs_dat}) P Q
     )
-    @lrs_ccall close Cvoid (Ptr{Cchar},) "lp:"
     found
 end
 
@@ -65,14 +63,25 @@ Suppose we want to solve the problem,
 ``\max x_1`` subject to ``4 x_1 + 2 x_2 \leq 3, x_1 \geq 0, x_2 \geq 0``:
 
 ```julia-repl
+julia> using LRSLib: RepMatrix, setobj, lpsolve
+
+julia> using Polyhedra
+
 julia> c = [1, 0];
+
 julia> A = [4 2; -1 0; 0 -1];
+
 julia> b = [3, 0, 0];
+
 julia> maximize = true;
+
 julia> hr = hrep(A, b);
+
 julia> m = RepMatrix(hr);
-julia> setobj(m, c, maximize)  # Set the objective;
-julia> sol = lpsolve(m)  # Solve the problem;
+
+julia> setobj(m, c, maximize);  # Set the objective
+
+julia> sol = lpsolve(m);  # Solve the problem
 ```
 
 Status:
@@ -92,8 +101,10 @@ julia> sol.objval
 Optimal solution:
 
 ```julia-repl
-julia> sol.status
-:Optimal
+julia> sol.sol
+2-element Array{Rational{BigInt},1}:
+ 3//4
+ 0//1
 ```
 """
 function lpsolve(m::HMatrix)
