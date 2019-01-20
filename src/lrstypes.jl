@@ -12,7 +12,7 @@ const Clrs_false = Clong(0)
 const Clrs_mp = GMPInteger
 const Clrs_mp_vector = Ptr{Clrs_mp}
 const Clrs_mp_matrix = Ptr{Ptr{Clrs_mp}}
-primitive type Clrs_fname 800 end
+primitive type Clrs_fname 32768 end  # 4096 * 8
 
 function extractbigintat(array::Clrs_mp_vector, i::Int)
     tmp = BigInt()
@@ -50,6 +50,7 @@ end
 mutable struct Clrs_dat      # global problem data
     Gcd::Clrs_mp_vector     # Gcd of each row of numerators
     Lcm::Clrs_mp_vector     # Lcm for each row of input denominators
+    output::Clrs_mp_vector     # One line of output dimensioned to n
 
     sumdet::Clrs_mp    # sum of determinants
     Nvolume::Clrs_mp    # volume numerator
@@ -124,12 +125,12 @@ mutable struct Clrs_dat      # global problem data
     hull::Clong      # do convex hull computation if TRUE
     incidence::Clong             # print all tight inequalities (vertices/rays)
     lponly::Clong    # true if only lp solution wanted
-    maxdepth::Clong    # max depth to search to in treee
+    maxdepth::Clonglong    # max depth to search to in treee
     maximize::Clong    # flag for LP maximization
     maxoutput::Clong       # if positive, maximum number of output lines
     maxcobases::Clong       # if positive, after maxcobasis unexplored subtrees reported
     minimize::Clong    # flag for LP minimization
-    mindepth::Clong    # do not backtrack above mindepth
+    mindepth::Clonglong    # do not backtrack above mindepth
     nash::Clong                  # TRUE for computing nash equilibria
     nonnegative::Clong    # TRUE if last d constraints are nonnegativity
     polytope::Clong    # TRUE for facet computation of a polytope
@@ -140,7 +141,9 @@ mutable struct Clrs_dat      # global problem data
     restart::Clong    # TRUE if restarting from some cobasis
     strace::Clong    # turn on  debug at basis # strace
     voronoi::Clong    # compute voronoi vertices by transformation
-    subtreesize::Clong       # in estimate mode, iterates if cob_est >= subtreesize
+    subtreesize::Clonglong   # in estimate mode, iterates if cob_est >= subtreesize
+    triangulation::Clong     # TRUE: the cobases printed triangulate the polytope
+    newstart::Clong          # TRUE: lrs is restarted with new arithmetic
 
     # Variables for saving/restoring cobasis,  db
 
@@ -149,9 +152,12 @@ mutable struct Clrs_dat      # global problem data
 
     saved_count0::Clong
     saved_count1::Clong
-    saved_count2::Clong  # How often to print out current cobasis
+    saved_count2::Clong
+    saved_count3::Clong
+    saved_count4::Clong  # How often to print out current cobasis
     saved_C::Ptr{Clong}
     saved_det::Clrs_mp
+    saved_sumdet::Clrs_mp
     saved_depth::Clong
     saved_d::Clong
 

@@ -19,12 +19,6 @@ function initmatrix(filename::AbstractString)
     if !ok
         error("Invalid file $filename")
     end
-
-    # From lrs_close
-    ccall(:printf, Cint, (Ptr{Cchar},), "\n")
-    lrs_ifp = unsafe_load(cglobal((:lrs_ifp, liblrs), Ptr{Cvoid}))
-    ccall(:fclose, Cint, (Ptr{Cvoid},), lrs_ifp)
-
     (P,Q)
 end
 
@@ -161,7 +155,7 @@ function myfree(l::LRSLinearitySpace)
 end
 
 function myfree(m::RepMatrix)
-    @lrs_ccall free_dic_and_dat Nothing (Ptr{Clrs_dic}, Ptr{Clrs_dat}) m.P m.Q
+    @lrs_ccall free_all_memory Nothing (Ptr{Clrs_dic}, Ptr{Clrs_dat}) m.P m.Q
 end
 
 _islin(rep::RepMatrix, idx::Polyhedra.Index) = isininputlinset(unsafe_load(rep.Q), idx.value)
@@ -243,7 +237,15 @@ end
 setrow(P::Ptr{Clrs_dic}, Q::Ptr{Clrs_dat}, i::Int, row::AbstractVector{Rational{BigInt}}, ineq::Bool) = setrow(P, Q, i, collect(row), ineq) # e.g. for sparse a
 
 function setdebug(m::RepMatrix, debug::Bool)
-    @lrs_ccall setdebug Nothing (Ptr{Clrs_dat}, Clong) m.Q (debug ? Clrs_true : Clrs_false)
+    unsafe_field_store!(m.Q, :debug, (debug ? Clrs_true : Clrs_false))
+end
+
+function setverbose(m::RepMatrix, verbose::Bool)
+    unsafe_field_store!(m.Q, :verbose, (verbose ? Clrs_true : Clrs_false))
+end
+
+function printA(m::RepMatrix)
+    @lrs_ccall2 printA Cvoid (Ptr{Clrs_dic}, Ptr{Clrs_dat}) m.P m.Q
 end
 
 function isrowpoint(P::Ptr{Clrs_dic}, Q::Ptr{Clrs_dat}, i)
