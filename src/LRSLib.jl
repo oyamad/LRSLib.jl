@@ -12,13 +12,13 @@ end
 
 macro lrs_ccall(f, args...)
     quote
-        ret = ccall(($"lrs_$f", liblrs), $(map(esc,args)...))
+        ret = ccall(($"lrs_$(f)_gmp", liblrs), $(map(esc,args)...))
         ret
     end
 end
 macro lrs_ccall2(f, args...)
     quote
-        ret = ccall(($"$f", liblrs), $(map(esc,args)...))
+        ret = ccall(($"$(f)_gmp", liblrs), $(map(esc,args)...))
         ret
     end
 end

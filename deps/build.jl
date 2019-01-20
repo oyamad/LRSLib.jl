@@ -3,9 +3,10 @@ using Libdl
 
 @BinDeps.setup
 
-lrslib_commit = "89bf29524143836a298e3f7f513e8b96d6356031"
+lrslib_commit = "d8b723a2c315614979a8354f9e768d273d14a215"
 #lrsname = "lrslib-061"
 lrsname = "lrslib-$lrslib_commit"
+lrslibname = "liblrs"
 
 # julia installs libgmp10 but not libgmp-dev since it
 # does not have to compile C program with GMP,
@@ -17,7 +18,7 @@ lrsname = "lrslib-$lrslib_commit"
 liblrs = library_dependency("liblrs", aliases=[lrsname, "liblrsgmp"])#, depends=[libgmpdev])
 
 official_repo = "http://cgm.cs.mcgill.ca/~avis/C/lrslib/archive/$lrsname.tar.gz"
-forked_repo = "https://github.com/blegat/lrslib/archive/$lrslib_commit.zip"
+forked_repo = "https://github.com/JuliaPolyhedra/lrslib/archive/$lrslib_commit.zip"
 
 #GMP
 @static if Sys.islinux()
@@ -47,7 +48,7 @@ lrssrcdir = joinpath(BinDeps.srcdir(liblrs), lrsname)
 lrsprefixdir = joinpath(BinDeps.usrdir(liblrs))
 lrslibdir = joinpath(lrsprefixdir, "lib")
 
-targetdirs = AbstractString["liblrsgmp.$(Libdl.dlext)"]
+targetdirs = AbstractString["$lrslibname.$(Libdl.dlext)"]
 
 @static if Sys.isapple()
     using Homebrew
@@ -62,11 +63,10 @@ targetdirs = AbstractString["liblrsgmp.$(Libdl.dlext)"]
               CreateDirectory(lrslibdir)
               @build_steps begin
               ChangeDirectory(lrssrcdir)
-              FileRule(joinpath(lrslibdir,"liblrsgmp.$(Libdl.dlext)"),@build_steps begin
+              FileRule(joinpath(lrslibdir,"$lrslibname.$(Libdl.dlext)"),@build_steps begin
                        pipeline(`cat $patchdir/makefile.osx.patch`, `patch`)
-                       pipeline(`patch -p1`, stdin="../../quiet.diff")
-                       `make all-shared SONAME=liblrsgmp.$(Libdl.dlext).0 SHLIB=liblrsgmp.$(Libdl.dlext).0 SHLINK=liblrsgmp.$(Libdl.dlext) INCLUDEDIR=$homebrew_includedir LIBDIR=$homebrew_libdir`
-                       `cp liblrsgmp.$(Libdl.dlext) $lrslibdir/liblrsgmp.$(Libdl.dlext)`
+                       `make $lrslibname.$(Libdl.dlext).0 SONAME=$lrslibdir/$lrslibname.$(Libdl.dlext) SHLIB=$lrslibname.$(Libdl.dlext).0 SHLINK=$lrslibname.$(Libdl.dlext) INCLUDEDIR=$homebrew_includedir LIBDIR=$homebrew_libdir`
+                       `cp $lrslibname.$(Libdl.dlext).0 $lrslibdir/$lrslibname.$(Libdl.dlext)`
                        end)
               end
              end),liblrs)
@@ -78,10 +78,9 @@ else
               CreateDirectory(lrslibdir)
               @build_steps begin
               ChangeDirectory(lrssrcdir)
-              FileRule(joinpath(lrslibdir,"liblrsgmp.$(Libdl.dlext)"),@build_steps begin
-                       pipeline(`patch -p1`, stdin="../../quiet.diff")
-                       `make all-shared`
-                       `cp liblrsgmp.$(Libdl.dlext) $lrslibdir/liblrsgmp.$(Libdl.dlext)`
+              FileRule(joinpath(lrslibdir,"$lrslibname.$(Libdl.dlext)"),@build_steps begin
+                       `make $lrslibname.$(Libdl.dlext).0 SONAME=$lrslibname.$(Libdl.dlext) SHLIB=$lrslibname.$(Libdl.dlext).0`
+                       `cp $lrslibname.$(Libdl.dlext).0 $lrslibdir/$lrslibname.$(Libdl.dlext)`
                        end)
               end
              end),liblrs)
