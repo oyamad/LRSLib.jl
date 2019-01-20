@@ -240,6 +240,14 @@ function setdebug(m::RepMatrix, debug::Bool)
     unsafe_field_store!(m.Q, :debug, (debug ? Clrs_true : Clrs_false))
 end
 
+function setverbose(m::RepMatrix, verbose::Bool)
+    unsafe_field_store!(m.Q, :verbose, (verbose ? Clrs_true : Clrs_false))
+end
+
+function printA(m::RepMatrix)
+    @lrs_ccall2 printA Cvoid (Ptr{Clrs_dic}, Ptr{Clrs_dat}) m.P m.Q
+end
+
 function isrowpoint(P::Ptr{Clrs_dic}, Q::Ptr{Clrs_dat}, i)
     offset = unsafe_load(Q).homogeneous == Clrs_true ? 0 : 1
     row = unsafe_load(unsafe_load(P).A, 1+i)
