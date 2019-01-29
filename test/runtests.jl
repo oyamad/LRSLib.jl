@@ -8,3 +8,4 @@ include("simplex.jl")
 
 include("polyhedron.jl")
 include("lp.jl")
+include("nash.jl")

@@ -1,6 +1,6 @@
 The LRSLib.jl package is licensed under the GPLv2 License:
 
-> Copyright (c) 2015: Benoît Legat.
+> Copyright (c) 2015: Benoît Legat and Daisuke Oyama.
 > All Rights Reserved.
 >
 > This program is free software; you can redistribute it and/or modify

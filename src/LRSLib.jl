@@ -2,6 +2,7 @@ module LRSLib
 
 using BinDeps
 using Polyhedra
+using LinearAlgebra
 using Markdown
 
 if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
@@ -37,5 +38,6 @@ include("conversion.jl")
 include("redund.jl")
 include("polyhedron.jl")
 include("lp.jl")
+include("nash.jl")
 
 end # module
