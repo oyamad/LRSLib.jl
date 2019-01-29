@@ -149,17 +149,12 @@ function nash2_main(hr1::HMatrix, hr2::HMatrix, linindex::Vector{Clong})
 
     # Step 2
     Lin2 = Ref{Clrs_mp_matrix}(C_NULL)
-    found = Clrs_true == ccall(
+    ccall(
         (:lrs_getfirstbasis2, liblrsnash), Clong,
         (Ptr{Ptr{Clrs_dic}}, Ptr{Clrs_dat}, Ptr{Clrs_dic},
          Ptr{Clrs_mp_matrix}, Clong, Ptr{Clong}),
         P2ptr, Q2, P2orig, Lin2, Clrs_true, linindex
-    )
-
-    if !found
-        @lrs_ccall(free_dic, Cvoid, (Ptr{Clrs_dic}, Ptr{Clrs_dat}), P2ptr[], Q2)
-        return outputs
-    end
+    ) == Clrs_true || @goto sayonara
 
     if unsafe_load(Q2).dualdeg == Clrs_true
         @warn("Dual degenerate, ouput may be incomplete")
@@ -188,13 +183,13 @@ function nash2_main(hr1::HMatrix, hr2::HMatrix, linindex::Vector{Clong})
                 push!(outputs, output2)
             end
         end
-        x = @lrs_ccall(
+        @lrs_ccall(
             getnextbasis, Clong, (Ptr{Ptr{Clrs_dic}}, Ptr{Clrs_dat}, Clong),
             P2ptr, Q2, prune
-        )
-        x == Clrs_true || break
+        ) == Clrs_true || break
     end
 
+    @label sayonara
     @lrs_ccall(free_dic, Cvoid, (Ptr{Clrs_dic}, Ptr{Clrs_dat}), P2ptr[], Q2)
     return outputs
 end
