@@ -274,5 +274,19 @@ end
 nashsolve(filename::AbstractString) = nashsolve(readgame(filename)...)
 
 # For legacy format
-nashsolve(filename1::AbstractString, filename2::AbstractString) =
-    solve_nash([HMatrix(filename) for filename in [filename1, filename2]]...)
+function nashsolve(filename1::AbstractString, filename2::AbstractString)
+    hrs = HMatrix.([filename1, filename2])
+    Q2 = unsafe_load(hrs[2].Q)
+
+    # From lrs_solve_nash_legacy
+    if Q2.nlinearity > 0
+        ccall((:free, liblrs), Cvoid, (Ptr{Cvoid},), Q2.linearity)
+    end
+    ptr = @lrs_ccall2(
+        xcalloc, Ptr{Cvoid}, (Clong, Clong, Clong, Cstring),
+        Q2.m+2, sizeof(Clong), @__LINE__, @__FILE__
+    )
+    unsafe_field_store!(hrs[2].Q, :linearity, ptr)
+
+    return solve_nash(hrs...)
+end
